@@ -1,0 +1,50 @@
+<acsconfig xmlns="http://openncip.org/acs-config/1.0/">
+
+  <error-detect enabled="true" />
+  
+  <listeners>
+    <service
+      port="192.168.1.101:8080/tcp"
+      transport="http"
+      protocol="NCIP/1.0" />
+
+    <service
+      port="8023/tcp"
+      transport="telnet"
+      protocol="SIP/1.00"
+      timeout="60" />
+
+    <service
+      port="127.0.0.1:5300/tcp"
+      transport="RAW" 
+      protocol="SIP/2.00"
+      timeout="60" />
+  </listeners>
+
+  <accounts>
+      <login id="scclient" password="clientpwd" institution="UWOLS">
+      </login>
+      <login id="scclient-2" password="clientpwd-2"
+             institution="UWOLS" />
+      <login id="lpl-sc" password="1234" institution="LPL" />
+      <login id="lpl-sc-beacock" password="xyzzy"
+             delimiter="|" error-detect="enabled" institution="LPL" />
+  </accounts>
+
+<!-- Institution tags will hold stuff used to interface to -->
+<!-- the rest of the ILS: authentication parameters, etc.  I -->
+<!-- don't know what yet, so it'll just be blank.  But there -->
+<!-- needs to be one institution stanza for each institution -->
+<!-- named in the accounts above. -->
+<institutions>
+    <institution id="UWOLS" >
+          <policy checkin="true" renewal="false"
+	  	  status_update="false" offline="false"
+		  timeout="600"
+	  	  retries="3" />
+    </institution>
+
+    <institution id="LPL">
+    </institution>
+</institutions>
+</acsconfig>
