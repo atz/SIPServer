@@ -1,4 +1,4 @@
-package ACSServer;
+package SIPServer;
 
 use strict;
 use warnings;
@@ -51,7 +51,7 @@ print Dumper(@parms);
 
 #
 # This is the main event.
-ACSServer->run(@parms);
+SIPServer->run(@parms);
 
 #
 # Child
@@ -205,6 +205,10 @@ sub telnet_transport {
     syslog("LOG_INFO", "telnet_transport: shutting down");
 }
 
+
+sub http_transport {
+}
+
 #
 # The terminal has logged in, using either the SIP login process
 # over a raw socket, or via the pseudo-unix login provided by the
@@ -218,6 +222,17 @@ sub sip_protocol_loop {
 
     local $/ = "\r";		# SIP protocol message terminator
 
+    #
+    # initialize connection to ILS
+    #
+    $self->{ils} = new ILS $self->{account}->{institution};
+
+
+    if (!$self->{ils}) {
+	syslog("LOG_ERR", "%s: ILS connection to '%s' failed, exiting",
+	       $self->{service}, $self->{institution});
+	die("ILS initialization failed");
+    }
     # Now that the terminal has logged in, the first message
     # we recieve must be an SC_STATUS message.  But it might be
     # an SC_REQUEST_RESEND.  So, as long as we keep receiving
@@ -248,6 +263,4 @@ sub sip_protocol_loop {
 	# to receive
 	$expect = '';
     }
-}
-sub http_transport {
 }
