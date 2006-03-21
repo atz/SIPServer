@@ -504,17 +504,6 @@ sub handle_patron_status {
     return (PATRON_STATUS_REQ);
 }
 
-#
-# Build a checkout failure message
-#
-sub build_checkout_failed {
-    my ($fields, $inst, $patron, $item, $status) = @_;
-    my $resp;
-
-
-    return $resp;
-}
-
 sub handle_checkout {
     my ($self, $server) = @_;
     my $account = $server->{account};
@@ -908,15 +897,16 @@ sub send_acs_status {
     my $msg = ACS_STATUS;
     my $account = $server->{account};
     my $policy = $server->{policy};
+    my $ils = $server->{ils};
     my ($online_status, $checkin_ok, $checkout_ok, $ACS_renewal_policy);
     my ($status_update_ok, $offline_ok, $timeout, $retries);
 
     $online_status = 'Y';
-    $checkout_ok = 'Y';
-    $ACS_renewal_policy = Sip::y_or_n($policy->{renewal});
-    $checkin_ok = Sip::y_or_n($policy->{checkin});
-    $status_update_ok = Sip::y_or_n($policy->{status_update});
-    $offline_ok = Sip::y_or_n($policy->{offline});
+    $checkout_ok = sipbool($ils->checkout_ok);
+    $checkin_ok = sipbool($ils->checkin_ok);
+    $ACS_renewal_policy = sipbool($policy->{renewal});
+    $status_update_ok = sipbool($ils->status_update_ok);
+    $offline_ok = sipbool($ils->offline_ok);
     $timeout = sprintf("%03d", $policy->{timeout});
     $retries = sprintf("%03d", $policy->{retries});
 
@@ -1029,7 +1019,7 @@ sub denied {
 sub sipbool {
     my $bool = shift;
 
-    if (!$bool || ($bool =~/^false|n$/i)) {
+    if (!$bool || ($bool =~/^false|n|no$/i)) {
 	return('N');
     } else {
 	return('Y');
