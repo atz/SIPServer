@@ -19,6 +19,8 @@ use ILS;
 use ILS::Patron;
 use ILS::Item;
 
+use Data::Dumper;
+
 our (@ISA, @EXPORT_OK);
 
 @ISA = qw(Exporter);
@@ -472,7 +474,7 @@ sub handle_patron_status {
 	}
     } else {
 	# Valid patron
-	$resp .= $self->build_patron_status($patron);
+	$resp .= build_patron_status($patron);
 	$resp .= $lang . Sip::timestamp();
 	$resp .= FID_PERSONAL_NAME . $patron->name . $field_delimiter;
 
@@ -503,86 +505,128 @@ sub handle_patron_status {
 }
 
 #
-# Build and send a checkout failure message
+# Build a checkout failure message
 #
-sub checkout_failed {
-    my ($self, $server, $patron, $item, $status) = @_;
-    my $account = $server->{account};
-    my $fields = $self->{fields};
+sub build_checkout_failed {
+    my ($fields, $inst, $patron, $item, $status) = @_;
     my $resp;
 
-    # Checkout Response: not ok, no renewal, don't know mag. media,
-    # no desensitize
-    $resp = sprintf("120NUN%s", Sip::timestamp);
-    $resp .= FID_INST_ID . $account->{institution} . $field_delimiter;
-    $resp .= FID_PATRON_ID . $fields->{(FID_PATRON_ID)} . $field_delimiter;
-    $resp .= FID_ITEM_ID . $fields->{(FID_ITEM_ID)} . $field_delimiter;
-    # We don't know the title, but it's required, so leave it blank
-    $resp .= FID_TITLE_ID . $field_delimiter;
-    # Due date is required.  Since it didn't get checked out,
-    # it's not due, so leave the date blank
-    $resp .= FID_DUE_DATE . $field_delimiter;
 
-    # Screen message.  Let the ILS define the message, and if there's
-    # a distinction between invalid patron and permission denied.
-    if (!$patron) {
-	$resp .= FID_SCREEN_MSG . ILS::Patron::invalid_patron . $field_delimiter;
-    } elsif (!$patron->charge_ok) {
-	$resp .= FID_SCREEN_MSG . ILS::Patron::charge_denied . $field_delimiter;
-    }
-
-    if ($protocol_version eq '2.00') {
-	# Is the patron ID valid?
-	$resp .= FID_VALID_PATRON . ($patron ? 'Y' : 'N') . $field_delimiter;
-
-	if ($patron && exists($self->{fields}->{FID_PATRON_PWD})) {
-	    # Password provided, so we can tell if it was valid or not
-	    $resp .= FID_VALID_PATRON_PWD
-		. $patron->check_password($self->{fields}->{(FID_PATRON_PWD)})
-		. $field_delimiter;
-	}
-    }
-
-    $self->write_msg($resp, $server);
+    return $resp;
 }
 
 sub handle_checkout {
     my ($self, $server) = @_;
     my $account = $server->{account};
+    my $ils = $server->{ils};
+    my $inst = $ils->institution;
     my ($sc_renewal_policy, $no_block, $trans_date, $nb_due_date);
     my $fields;
-    my ($patron, $item, $status);
-
-    # Response field values
-    #my ($ok, $renew_ok, $mag_media, $desensitize, $inst_id, $patron_id);
-    #my ($item_id, $title_id, $due, $fee_type, $sec_inh, $currency, $fee_amt);
-    #my ($media, $item_props, $trans_id, $screen_msg, $print_line);
+    my ($patron_id, $item_id, $status);
+    my ($item, $patron);
+    my $resp;
 
     ($sc_renewal_policy, $no_block, $trans_date, $nb_due_date) =
 	@{$self->{fixed_fields}};
     $fields = $self->{fields};
 
-    $patron = new ILS::Patron($fields->{(FID_PATRON_ID)});
-    if (!$patron || !$patron->charge_ok) {
-	checkout_failed($self, $server, $patron, undef, undef);
-	return(CHECKOUT);
+    $patron_id = $fields->{(FID_PATRON_ID)};
+    $item_id = $fields->{(FID_ITEM_ID)};
+    
+
+    if ($no_block eq 'Y') {
+	# Off-line transactions need to be recorded, but there's
+	# not a lot we can do about it
+	syslog("LOG_WARN", "received no-block checkout from terminal '%s'",
+	       $account);
+
+	$status = $ils->checkout_no_block($patron_id, $item_id,
+					  $sc_renewal_policy,
+					  $trans_date, $nb_due_date);
+    } else {
+	# Does the transaction date really matter for items that are
+	# checkout out while the terminal is online?  I'm guessing 'no'
+	$status = $ils->checkout($patron_id, $item_id, $sc_renewal_policy);
     }
 
-    $item = new ILS::Item($fields->{(FID_ITEM_ID)});
-    # If the item ID is valid, then we have to attempt the
-    # checkout, since different users may have different checkout
-    # permissions.  So, let the ILS figure out if the checkout's
-    # OK.
-    if (!$item) {
-	checkout_failed($self, $server, $patron, undef, undef);
-	return(CHECKOUT);
+
+    $item = $status->item;
+    $patron = $status->patron;
+
+    if ($status->ok) {
+	# Item successfully checked out
+	# Fixed fields
+	$resp = CHECKOUT_RESP . '1';
+	$resp .= sipbool($status->renew_ok);
+	if ($ils->supports('magnetic media')) {
+	    $resp .= sipbool($item->magnetic);
+	} else {
+	    $resp .= 'U';
+	}
+	# We never return the obsolete 'U' value for 'desensitize'
+	$resp .= sipbool($status->desensitize);
+	$resp .= Sip::timestamp;
+
+	# Now for the variable fields
+	$resp .= add_field(FID_INST_ID, $inst);
+	$resp .= add_field(FID_PATRON_ID, $patron_id);
+	$resp .= add_field(FID_ITEM_ID, $item_id);
+	$resp .= add_field(FID_TITLE_ID, $item->title_id);
+	$resp .= add_field(FID_DUE_DATE, $status->due_date);
+
+	$resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
+	$resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
+
+	if ($protocol_version eq '2.00') {
+	    if ($ils->supports('security inhibit')) {
+		$resp .= add_field(FID_SECURITY_INHIBIT,
+				   $status->security_inhibit);
+	    }
+	    $resp .= maybe_add(FID_MEDIA_TYPE, $item->sip_media_type);
+	    $resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
+	    
+	    # Financials
+	    if ($status->fee_amount) {
+		$resp .= add_field(FID_FEE_AMT, $status->fee_amount);
+		$resp .= maybe_add(FID_CURRENCY, $status->sip_currency);
+		$resp .= maybe_add(FID_FEE_TYPE, $status->sip_fee_type);
+		$resp .= maybe_add(FID_TRANSACTION_ID,
+				   $status->transaction_id);
+	    }
+	}
+
+    } else {
+	# Checkout failed
+	# Checkout Response: not ok, no renewal, don't know mag. media,
+	# no desensitize
+	$resp = sprintf("120NUN%s", Sip::timestamp);
+	$resp .= add_field(FID_INST_ID, $inst);
+	$resp .= add_field(FID_PATRON_ID, $patron_id);
+	$resp .= add_field(FID_ITEM_ID, $item_id);
+
+	# We don't know the title, but it's required, so leave it blank
+	$resp .= FID_TITLE_ID . $field_delimiter;
+	# Due date is required.  Since it didn't get checked out,
+	# it's not due, so leave the date blank
+	$resp .= FID_DUE_DATE . $field_delimiter;
+	
+	$resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
+	$resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
+	
+	if ($protocol_version eq '2.00') {
+	    # Is the patron ID valid?
+	    $resp .= add_field(FID_VALID_PATRON, sipbool($patron));
+	    
+	    if ($patron && exists($fields->{FID_PATRON_PWD})) {
+		# Password provided, so we can tell if it was valid or not
+		$resp .= add_field(FID_VALID_PATRON_PWD,
+				   sipbool($patron->check_password($fields->{(FID_PATRON_PWD)})));
+	    }
+	}
     }
 
-    # XXX FINISH THIS STUFF UP!!!
-    # Mike says ACS checks whether this is a renewal or a checkout
-    # I think that's a mistake.  There are transactional issues:
-    # what happens if somebody places a hold between the time I check
-    # the item status above and the time that I perform the renewal below?
+    $self->write_msg($resp, $server);
+    return(CHECKOUT);
 }
 
 sub handle_checkin {
@@ -919,6 +963,15 @@ sub send_acs_status {
 }
 
 #
+# add_field(field_id, value)
+#    return constructed field value
+#
+sub add_field {
+    my ($field_id, $value) = @_;
+
+    return $field_id . $value . $field_delimiter;
+}
+#
 # maybe_add(field_id, value):
 #    If value is defined and non-empty, then return the
 #    constructed field value, otherwise return the empty string
@@ -934,8 +987,7 @@ sub maybe_add {
 # string for the Patron Status message
 #
 sub build_patron_status {
-    my ($self, $patron) = @_;
-    my $fields = $self->{fields};
+    my $patron = shift;
     my $patron_status;
 
     $patron_status = sprintf('%s%s%s%s%s%s%s%s%s%s%s%s%s%s',
@@ -974,8 +1026,18 @@ sub denied {
     }
 }
 
+sub sipbool {
+    my $bool = shift;
+
+    if (!$bool || ($bool =~/^false|n$/i)) {
+	return('N');
+    } else {
+	return('Y');
+    }
+}
+
 #
-# spacebool: ' ' is false, 'Y' is true. (don't ask)
+# boolspace: ' ' is false, 'Y' is true. (don't ask)
 # 
 sub boolspace {
     my $bool = shift;
