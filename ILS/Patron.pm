@@ -35,6 +35,7 @@ our %patron_db = (
 		      fees => 0,
 		      recall_overdue => 0,
 		      items_billed => 0,
+		      items => [],
 		  },
 		  );
 
