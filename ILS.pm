@@ -47,6 +47,21 @@ sub supports {
     return exists($supports{$op}) ? $supports{$op} : 0;
 }
 
+sub checkout_ok {
+    return 1;
+}
+
+sub checkin_ok {
+    return 0;
+}
+
+sub status_update_ok {
+    return 1;
+}
+
+sub offline_ok {
+    return 0;
+}
 #
 # Checkout(patron_id, item_id, sc_renew):
 #    patron_id & item_id are the identifiers send by the terminal
