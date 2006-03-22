@@ -434,47 +434,17 @@ sub handle {
 ## Message Handlers
 ##
 
-sub handle_patron_status {
-    my ($self, $server) = @_;
-    my ($lang, $date);
-    my $fields;
-    my $patron;
+#
+# Patron status messages are produced in response to both
+# "Request Patron Status" and "Block Patron"
+#
+sub build_patron_status {
+    my ($patron, $lang, $fields)= @_;
     my $resp = (PATRON_STATUS_RESP);
-    my $account = $server->{account};
 
-    ($lang, $date) = @{$self->{fixed_fields}};
-    $fields = $self->{fields};
-
-    syslog("LOG_DEBUG", "handle_patron_status:");
-    syslog("LOG_DEBUG", "    LANG         = '%s'", $lang);
-    syslog("LOG_DEBUG", "    DATE         = '%s'", $date);
-    syslog("LOG_DEBUG", "    inst_id      = '%s'", $fields->{(FID_INST_ID)});
-    syslog("LOG_DEBUG", "    patron_id    = '%s'", $fields->{(FID_PATRON_ID)});
-    syslog("LOG_DEBUG", "    terminal_pwd = '%s'", $fields->{(FID_TERMINAL_PWD)});
-    syslog("LOG_DEBUG", "    patron_pwd   = '%s'", $fields->{(FID_PATRON_PWD)});
-
-    if ($fields->{(FID_INST_ID)} ne $account->{institution}) {
-	syslog("LOG_WARN", "handle_patron_status: Inst-ID from SC, %s, doesn't match account Inst-ID, %s",
-	       $fields->{(FID_INST_ID)}, $account->{institution});
-    }
-
-    $patron = new ILS::Patron $fields->{(FID_PATRON_ID)};
-    if (!defined($patron)) {
-	# Invalid patron id: he has no privileges, has
-	# no personal name, and is invalid (if we're using 2.00)
-	$resp .= (' ' x 14) . $lang . Sip::timestamp();
-	$resp .= FID_PERSONAL_NAME . $field_delimiter;
-
-	# the patron ID is invalid, but it's a required field, so
-	# just echo it back
-	$resp .= FID_PATRON_ID . $fields->{(FID_PATRON_ID)} . $field_delimiter;
-
-	if ($protocol_version eq '2.00') {
-	    $resp .= FID_VALID_PATRON . 'N' . $field_delimiter;
-	}
-    } else {
+    if ($patron) {
 	# Valid patron
-	$resp .= build_patron_status($patron);
+	$resp .= patron_status_string($patron);
 	$resp .= $lang . Sip::timestamp();
 	$resp .= FID_PERSONAL_NAME . $patron->name . $field_delimiter;
 
@@ -482,7 +452,7 @@ sub handle_patron_status {
 	# use the one returned from the ILS, just in case...
 	$resp .= FID_PATRON_ID . $patron->id . $field_delimiter;
 	if ($protocol_version eq '2.00') {
-	    $resp .= FID_VALID_PATRON . 'Y';
+	    $resp .= FID_VALID_PATRON . 'Y' . $field_delimiter;
 	    # If the patron password field doesn't exist, we don't know if
 	    # it's valid or not.  Or do we have to match an empty password?
 	    if (exists($fields->{(FID_PATRON_PWD)})) {
@@ -495,9 +465,45 @@ sub handle_patron_status {
 	}
 	$resp .= maybe_add(FID_SCREEN_MSG, $patron->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $patron->print_line);
+    } else {
+	# Invalid patron id: he has no privileges, has
+	# no personal name, and is invalid (if we're using 2.00)
+	$resp .= (' ' x 14) . $lang . Sip::timestamp();
+	$resp .= FID_PERSONAL_NAME . $field_delimiter;
+
+	# the patron ID is invalid, but it's a required field, so
+	# just echo it back
+	$resp .= FID_PATRON_ID . $fields->{(FID_PATRON_ID)} . $field_delimiter;
+
+	if ($protocol_version eq '2.00') {
+	    $resp .= FID_VALID_PATRON . 'N' . $field_delimiter;
+	}
     }
 
-    $resp .= FID_INST_ID . $account->{institution} . $field_delimiter;
+    $resp .= FID_INST_ID . $fields->{(FID_INST_ID)} . $field_delimiter;
+
+    return $resp;
+}
+
+sub handle_patron_status {
+    my ($self, $server) = @_;
+    my ($lang, $date);
+    my $fields;
+    my $patron;
+    my $resp = (PATRON_STATUS_RESP);
+    my $account = $server->{account};
+
+    ($lang, $date) = @{$self->{fixed_fields}};
+    $fields = $self->{fields};
+
+    if ($fields->{(FID_INST_ID)} ne $account->{institution}) {
+	syslog("LOG_WARN", "handle_patron_status: Inst-ID from SC, %s, doesn't match account Inst-ID, %s",
+	       $fields->{(FID_INST_ID)}, $account->{institution});
+    }
+
+    $patron = new ILS::Patron $fields->{(FID_PATRON_ID)};
+
+    $resp = build_patron_status($patron, $lang, $fields);
 
     $self->write_msg($resp, $server);
 
@@ -527,7 +533,7 @@ sub handle_checkout {
 	# Off-line transactions need to be recorded, but there's
 	# not a lot we can do about it
 	syslog("LOG_WARN", "received no-block checkout from terminal '%s'",
-	       $account);
+	       $account->{id});
 
 	$status = $ils->checkout_no_block($patron_id, $item_id,
 					  $sc_renewal_policy,
@@ -640,21 +646,46 @@ sub handle_checkin {
 
 sub handle_block_patron {
     my ($self, $server) = @_;
+    my $account = $server->{account};
+    my $ils = $server->{ils};
     my ($card_retained, $trans_date);
+    my ($inst_id, $blocked_card_msg, $patron_id, $terminal_pwd);
     my $fields;
+    my $resp;
+    my $patron;
 
     ($card_retained, $trans_date) = @{$self->{fixed_fields}};
     $fields = $self->{fields};
+    $inst_id = $fields->{(FID_INST_ID)};
+    $blocked_card_msg = $fields->{(FID_BLOCKED_CARD_MSG)};
+    $patron_id = $fields->{(FID_PATRON_ID)};
+    $terminal_pwd = $fields->{(FID_TERMINAL_PWD)};
 
-    printf("handle_block_patron:\n");
-    printf("    card_retained: %c\n", $card_retained);
-    printf("    trans_date   : %s\n", $trans_date);
+    # Terminal passwords are different from account login
+    # passwords, but I have no idea what to do with them.  So,
+    # I'll just ignore them for now.
 
-    foreach my $key (keys(%$fields)) {
-	printf("    $key           : %s\n",
-	       defined($fields->{$key}) ? $fields->{$key} : 'UNDEF' );
+    if ($ils->institution ne $inst_id) {
+	syslog("WARN", "block_patron: recieved message for institution '%s', expecting '%s'",
+	       $inst_id, $ils->institution);
     }
 
+    $patron = $ils->block_patron($patron_id, $card_retained,
+				 $blocked_card_msg);
+
+    # The correct response for a "Block Patron" message is a
+    # "Patron Status Response", so use that handler to generate
+    # the message, but then return the correct code from here.
+    # 
+    # Normally, the language is provided by the "Patron Status"
+    # fixed field, but since we're not responding to one of those
+    # we'll just say, "Unspecified", as per the spec.  Let the 
+    # terminal default to something that, one hopes, will be 
+    # intelligible
+    $resp = build_patron_status($patron, '000', $fields);
+
+    $self->write_msg($resp, $server);
+    return(BLOCK_PATRON);
 }
 
 sub handle_sc_status {
@@ -976,7 +1007,7 @@ sub maybe_add {
 # build_patron_status: create the 14-char patron status
 # string for the Patron Status message
 #
-sub build_patron_status {
+sub patron_status_string {
     my $patron = shift;
     my $patron_status;
 
