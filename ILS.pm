@@ -91,4 +91,24 @@ sub checkout {
     return $circ;
 }
 
+sub block_patron {
+    my ($self, $patron_id, $card_retained, $blocked_card_msg) = @_;
+    my $patron;
+
+    $patron = new ILS::Patron $patron_id;
+
+    if (!$patron) {
+	syslog("WARNING", "ILS::block_patron: attempting to block non-existant patron '%s'", $patron_id);
+	return undef;
+    }
+
+    foreach my $field ('charge_ok', 'renew_ok', 'recall_ok', 'hold_ok') {
+	$patron->{$field} = 'N';
+    }
+
+    $patron->{screen_msg} = $blocked_card_msg || "Card Blocked.  Please contact library staff";
+
+    return $patron;
+}
+
 1;
