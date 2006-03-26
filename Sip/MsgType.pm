@@ -11,7 +11,7 @@ use warnings;
 use Exporter;
 use Sys::Syslog qw(syslog);
 
-use Sip;
+use Sip qw(:all);
 use Sip::Constants qw(:all);
 use Sip::Checksum qw(checksum verify_cksum);
 
@@ -272,10 +272,6 @@ foreach my $i (keys(%handlers)) {
     }
 }
 
-my $error_detection = 0;
-my $protocol_version = "1.00";
-my $field_delimiter = '|'; 	# Protocol Default
-
 sub new {
     my ($class, $msg, $seqno) = @_;
     my $self = {};
@@ -446,19 +442,18 @@ sub build_patron_status {
 	# Valid patron
 	$resp .= patron_status_string($patron);
 	$resp .= $lang . Sip::timestamp();
-	$resp .= FID_PERSONAL_NAME . $patron->name . $field_delimiter;
+	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
 
 	# while the patron ID we got from the SC is valid, let's
 	# use the one returned from the ILS, just in case...
 	$resp .= FID_PATRON_ID . $patron->id . $field_delimiter;
 	if ($protocol_version eq '2.00') {
-	    $resp .= FID_VALID_PATRON . 'Y' . $field_delimiter;
+	    $resp .= add_field(FID_VALID_PATRON, 'Y');
 	    # If the patron password field doesn't exist, we don't know if
 	    # it's valid or not.  Or do we have to match an empty password?
 	    if (exists($fields->{(FID_PATRON_PWD)})) {
-		$resp .= FID_VALID_PATRON_PWD
-		    . $patron->check_password($fields->{(FID_PATRON_PWD)})
-		    . $field_delimiter;
+		$resp .= add_field(FID_VALID_PATRON_PWD,
+				   sipbool($patron->check_password($fields->{(FID_PATRON_PWD)})));
 	    }
 	    $resp .= maybe_add(FID_CURRENCY, $patron->currency);
 	    $resp .= maybe_add(FID_FEE_AMT, $patron->fee_amount);
@@ -468,19 +463,19 @@ sub build_patron_status {
     } else {
 	# Invalid patron id: he has no privileges, has
 	# no personal name, and is invalid (if we're using 2.00)
-	$resp .= (' ' x 14) . $lang . Sip::timestamp();
-	$resp .= FID_PERSONAL_NAME . $field_delimiter;
+	$resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
+	$resp .= add_field(FID_PERSONAL_NAME, '');
 
 	# the patron ID is invalid, but it's a required field, so
 	# just echo it back
-	$resp .= FID_PATRON_ID . $fields->{(FID_PATRON_ID)} . $field_delimiter;
+	$resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
 
 	if ($protocol_version eq '2.00') {
-	    $resp .= FID_VALID_PATRON . 'N' . $field_delimiter;
+	    $resp .= add_field(FID_VALID_PATRON, 'N');
 	}
     }
 
-    $resp .= FID_INST_ID . $fields->{(FID_INST_ID)} . $field_delimiter;
+    $resp .= add_field(FID_INST_ID, $fields->{(FID_INST_ID)});
 
     return $resp;
 }
@@ -600,10 +595,10 @@ sub handle_checkout {
 	$resp .= add_field(FID_ITEM_ID, $item_id);
 
 	# We don't know the title, but it's required, so leave it blank
-	$resp .= FID_TITLE_ID . $field_delimiter;
+	$resp .= add_field(FID_TITLE_ID, '');
 	# Due date is required.  Since it didn't get checked out,
 	# it's not due, so leave the date blank
-	$resp .= FID_DUE_DATE . $field_delimiter;
+	$resp .= add_field(FID_DUE_DATE, '');
 	
 	$resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
@@ -777,11 +772,108 @@ sub handle_login {
     return $status ? LOGIN : '';
 }
 
+sub add_count {
+    my ($label, $count) = @_;
+
+    # If the field is unsupported, it will be undef, return blanks
+    # as per the spec.
+    if (!defined($count)) {
+	return ' ' x 4;
+    }
+
+    $count = sprintf("%04d", $count);
+    if (length($count) != 4) {
+	syslog("WARNING", "handle_patron_info: %s wrong size: '%s'",
+	       $label, $count);
+	$count = ' ' x 4;
+    }
+    return $count;
+}
+
+sub summary_info {
+    my ($patron, $summary, $start, $end) = @_;
+    my $resp = '';
+    my @itemlist;
+    my $summary_type;
+
+    my @info_funcs = (\&{$patron->hold_items},    \&{$patron->overdue_items},
+		      \&{$patron->charged_items}, \&{$patron->fine_items},
+		      \&{$patron->recall_items},  \&{$patron->unavail_holds},
+		      \&{$patron->fee_items},     \&{$patron->home_address},
+		      \&{$patron->email_addr},    \&{$patron->home_phone});
+    my @fids = (FID_HOLD_ITEMS, FID_OVERDUE_ITEMS, FID_CHARGED_ITEMS,
+		FID_FINE_ITEMS, FID_RECALL_ITEMS, FID_UNAVAILABLE_HOLD_ITEMS,
+		FID_FEE_ITEMS, FID_HOME_ADDR, FID_EMAIL, FID_HOME_PHONE);
+
+    if (($summary_type = index($summary, 'Y')) == -1) {
+	# No detailed information required
+	return '';
+    }
+
+    @itemlist = &{$info_funcs[$summary_type]}($patron, $start, $end);
+
+    foreach my $i (@itemlist) {
+	$resp .= add_field($fids[$summary_type], $itemlist[$i]);
+    }
+}
 sub handle_patron_info {
     my ($self, $server) = @_;
     my ($lang, $trans_date, $summary) = $self->{fixed_fields};
     my $fields = $self->{fields};
+    my ($inst_id, $patron_id, $terminal_pwd, $patron_pwd, $start, $end);
+    my ($resp, $patron, $count);
 
+    $inst_id = $fields->{(FID_INST_ID)};
+    $patron_id = $fields->{(FID_PATRON_ID)};
+    $terminal_pwd = $fields->{(FID_TERMINAL_PWD)};
+    $patron_pwd = $fields->{(FID_PATRON_PWD)};
+    $start = $fields->{(FID_START_ITEM)};
+    $end = $fields->{(FID_END_ITEM)};
+
+    $patron = new ILS::Patron $patron_id;
+
+    $resp = (PATRON_INFO_RESP);
+    if (!defined($patron) || !$patron->check_password($patron_pwd)) {
+	# Invalid patron ID, or password mismatch.  Either way
+	# we don't give back any status information.
+	# he has no privileges, no items associated with him,
+	# no personal name, and is invalid (if we're using 2.00)
+	$resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
+	$resp .= '0000' x 6;
+	$resp .= add_field(FID_PERSONAL_NAME, '');
+
+	# the patron ID is invalid, but it's a required field, so
+	# just echo it back
+	$resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
+
+	if ($protocol_version eq '2.00') {
+	    $resp .= add_field(FID_VALID_PATRON, 'N');
+	}
+    } else {
+	# Valid patron
+	$resp .= patron_status_string($patron);
+	$resp .= $lang . Sip::timestamp();
+
+	$resp .= add_count('hold_items', $patron->hold_items_count);
+	$resp .= add_count('overdue_items', $patron->overdue_items_count);
+	$resp .= add_count('charged_items', $patron->charged_items_count);
+	$resp .= add_count('fine_items', $patron->fine_items_count);
+	$resp .= add_count('recal_items', $patron->recall_items_count);
+	$resp .= add_count('unavail_holds', $patron->unavail_holds_count);
+	
+	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
+	# while the patron ID we got from the SC is valid, let's
+	# use the one returned from the ILS, just in case...
+	$resp .= FID_PATRON_ID . $patron->id . $field_delimiter;
+
+	$resp .= summary_info($patron, $summary, $start, $end);
+    }
+
+    $resp .= add_field(FID_INST_ID, $server->{ils}->institution);
+
+    $self->write_msg($resp, $server);
+
+    return(PATRON_INFO);
 }
 
 sub handle_end_patron_session {
@@ -959,11 +1051,11 @@ sub send_acs_status {
     $msg .= $protocol_version;
 
     # Institution ID
-    $msg .= FID_INST_ID . $account->{institution} . $field_delimiter;
+    $msg .= add_field(FID_INST_ID, $account->{institution});
 
     if ($protocol_version eq '2.00') {
 	# Supported messages: we do it all
-	$msg .= FID_SUPPORTED_MSGS . 'YYYYYYYYYYYYYYYY' . $field_delimiter;
+	$msg .= add_field(FID_SUPPORTED_MSGS, 'YYYYYYYYYYYYYYYY');
     }
 
     $msg .= maybe_add(FID_SCREEN_MSG, $screen_msg);
@@ -981,26 +1073,6 @@ sub send_acs_status {
 
     $self->write_msg($msg, $server);
     return 1;
-}
-
-#
-# add_field(field_id, value)
-#    return constructed field value
-#
-sub add_field {
-    my ($field_id, $value) = @_;
-
-    return $field_id . $value . $field_delimiter;
-}
-#
-# maybe_add(field_id, value):
-#    If value is defined and non-empty, then return the
-#    constructed field value, otherwise return the empty string
-#
-sub maybe_add {
-    my ($fid, $value) = @_;
-
-    return (defined($value) && $value) ? $fid . $value . $field_delimiter : '';
 }
 
 #
@@ -1027,73 +1099,6 @@ sub patron_status_string {
 			     boolspace($patron->recall_overdue),
 			     boolspace($patron->too_many_billed));
     return $patron_status;
-}
-
-#
-# denied($bool)
-# if $bool is false, return true.  This is because SIP statuses
-# are inverted:  we report that something has been denied, not that
-# it's permitted.  For example, 'renewal priv. denied' of 'Y' means
-# that the user's not permitted to renew.  I assume that the ILS has
-# real positive tests.
-# 
-sub denied {
-    my $bool = shift;
-
-    if (!$bool || ($bool eq 'N') || $bool eq 'False') {
-	return 'Y';
-    } else {
-	return ' ';
-    }
-}
-
-sub sipbool {
-    my $bool = shift;
-
-    if (!$bool || ($bool =~/^false|n|no$/i)) {
-	return('N');
-    } else {
-	return('Y');
-    }
-}
-
-#
-# boolspace: ' ' is false, 'Y' is true. (don't ask)
-# 
-sub boolspace {
-    my $bool = shift;
-
-    if (!$bool || ($bool eq 'N' || $bool eq 'False')) {
-	return ' ';
-    } else {
-	return 'Y';
-    }
-}
-#
-# write_msg($msg, $server)
-#
-# Send $msg to the SC.  If error detection is active, then 
-# add the sequence number (if $seqno is non-zero) and checksum
-# to the message, and save the whole thing as $last_response
-#
-
-sub write_msg {
-    my ($self, $msg, $server) = @_;
-    my $cksum;
-
-    if ($error_detection) {
-	if ($self->{seqno}) {
-	    $msg .= 'AY' . $self->{seqno};
-	}
-	$msg .= 'AZ';
-	$cksum = checksum($msg);
-	$msg .= sprintf('%4X', $cksum);
-    }
-
-    syslog("LOG_DEBUG", "OUTPUT MSG: '$msg'");
-
-    print "$msg\r";
-    $last_response = $msg;
 }
 
 1;
