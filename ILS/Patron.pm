@@ -11,6 +11,9 @@ use strict;
 use warnings;
 use Exporter;
 
+use Sys::Syslog qw(syslog);
+use Data::Dumper;
+
 our (@ISA, @EXPORT_OK);
 
 @ISA = qw(Exporter);
@@ -23,13 +26,14 @@ our %patron_db = (
 		      id => 'djfiander',
 		      password => '6789',
 		      address => '2 Meadowvale Dr. St Thomas, ON',
+		      home_phone => '(519) 555 1234',
+		      email_addr => 'djfiander@hotmail.com',
 		      charge_ok => 'Y',
 		      renew_ok => 'Y',
 		      recall_ok => 'N',
 		      hold_ok => 'Y',
 		      card_lost => 'N',
 		      items_charged => 5,
-		      items_overdue => 1,
 		      claims_returned => 0,
 		      fines => 100,
 		      fees => 0,
@@ -38,6 +42,12 @@ our %patron_db = (
 		      screen_msg => '',
 		      print_line => '',
 		      items => [],
+		      hold_items => [],
+		      overdue_items => [],
+		      fine_items => [],
+		      recall_items => [],
+		      unavail_holds => [],
+		      fee_items => ['Computer Time'],
 		  },
 		  );
 
@@ -73,7 +83,17 @@ sub address {
     return $self->{address};
 }
 
+sub email_addr {
+    my $self = shift;
 
+    return $self->{email_addr};
+}
+
+sub home_phone {
+    my $self = shift;
+
+    return $self->{home_phone};
+}
 
 sub charge_ok {
     my $self = shift;
@@ -108,13 +128,7 @@ sub card_lost {
 sub items_charged {
     my $self = shift;
 
-    return $self->{items_charged};
-}
-
-sub items_overdue {
-    my $self = shift;
-
-    return $self->{items_overdue};
+    return scalar @{$self->{items}};
 }
 
 sub claims_returned {
@@ -225,6 +239,113 @@ sub too_many_billed {
     return $self->{too_many_billed};
 }
 
+#
+# List of outstanding holds placed
+#
+sub hold_items {
+    my ($self, $start, $end) = @_;
+
+    $start = 1 if !defined($start);
+    $end = $self->hold_items_count + 1 if !defined($end);
+
+    return @{$self->{hold_items}}[$start-1 .. $end-1];
+}
+
+sub hold_items_count {
+    my $self = shift;
+
+    return scalar @{$self->{hold_items}};
+}
+
+sub overdue_items {
+    my ($self, $start, $end) = @_;
+
+    $start = 1 if !defined($start);
+    $end = $self->overdue_items_count + 1 if !defined($end);
+
+    return @{$self->{overdue_items}}[$start-1 .. $end-1];
+}
+
+sub overdue_items_count {
+    my $self = shift;
+
+    return scalar @{$self->{overdue_items}};
+}
+
+sub charged_items {
+    my ($self, $start, $end) = shift;
+
+    $start = 1 if !defined($start);
+    $end = $self->charged_items_count + 1 if !defined($end);
+
+    return @{$self->{items}}[$start-1 .. $end-1];
+}
+
+sub charged_items_count {
+    my $self = shift;
+
+    return scalar @{$self->{items}};
+}
+
+sub fine_items {
+    my ($self, $start, $end) = @_;
+
+    $start = 1 if !defined($start);
+    $end = $self->fine_items_count + 1 if !defined($end);
+
+    return @{$self->{fine_items}}[$start-1 .. $end-1];
+}
+
+sub fine_items_count {
+    my $self = shift;
+
+    return scalar @{$self->{fine_items}};
+}
+
+sub recall_items {
+    my ($self, $start, $end) = @_;
+
+    $start = 1 if !defined($start);
+    $end = $self->recall_items_count + 1 if !defined($end);
+
+    return @{$self->{recall_items}}[$start-1 .. $end-1];
+}
+
+sub recall_items_count {
+    my $self = shift;
+
+    return scalar @{$self->{recall_items}};
+}
+
+sub unavail_holds {
+    my ($self, $start, $end) = @_;
+
+    $start = 1 if !defined($start);
+    $end = $self->unavail_holds_count + 1 if !defined($end);
+
+    return @{$self->{unavail_holds}}[$start-1 .. $end-1];
+}
+
+sub unavail_holds_count {
+    my $self = shift;
+
+    return scalar @{$self->{unavail_holds}};
+}
+
+sub fee_items {
+    my ($self, $start, $end) = @_;
+
+    $start = 1 if !defined($start);
+    $end = $self->fee_items_count + 1 if !defined($end);
+
+    return @{$self->{fee_items}}[$start-1 .. $end-1];
+}
+
+sub fee_items_count {
+    my $self = shift;
+
+    return scalar @{$self->{fee_items}};
+}
 #
 # Messages
 #
