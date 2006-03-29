@@ -111,4 +111,13 @@ sub block_patron {
     return $patron;
 }
 
+# If the ILS caches patron information, this lets it free
+# it up
+sub end_patron_session {
+    my ($self, $patron_id) = @_;
+
+    # success?, screen_msg, print_line
+    return (1, 'Thank you for using Evergreen!', '');
+}
+
 1;
