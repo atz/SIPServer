@@ -891,20 +891,33 @@ sub handle_patron_info {
 
 sub handle_end_patron_session {
     my ($self, $server) = @_;
+    my $ils = $server->{ils};
     my $trans_date;
     my $fields;
+    my $resp = END_SESSION_RESP;
+    my ($status, $screen_msg, $print_line);
 
-    #  No tagged fields are required.
     ($trans_date) = @{$self->{fixed_fields}};
     $fields = $self->{fields};
 
-    printf("handle_end_patron_session\n");
-    printf("    trans_date: %s\n", $trans_date);
-
-    foreach my $key (keys(%$fields)) {
-	printf("    $key        : %s\n",
-	       defined($fields->{$key}) ? $fields->{$key} : 'UNDEF' );
+    if ($fields->{(FID_INST_ID)} ne $ils->institution) {
+	syslog("WARNING", "handle_end_patron_session: received institution '%s', expected '%s'", $fields->{(FID_INST_ID)}, $ils->institution);
     }
+
+    ($status, $screen_msg, $print_line) = $ils->end_patron_session($fields->{(FID_PATRON_ID)});
+
+    $resp .= $status ? 'Y' : 'N';
+    $resp .= Sip::timestamp();
+
+    $resp .= add_field(FID_INST_ID, $server->{ils}->institution);
+    $resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
+
+    $resp .= maybe_add(FID_SCREEN_MSG, $screen_msg);
+    $resp .= maybe_add(FID_PRINT_LINE, $print_line);
+
+    $self->write_msg($resp, $server);
+
+    return(END_PATRON_SESSION);
 }
 
 sub handle_fee_paid {
