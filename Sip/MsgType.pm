@@ -10,10 +10,11 @@ use strict;
 use warnings;
 use Exporter;
 use Sys::Syslog qw(syslog);
+use UNIVERSAL qw(can);
 
 use Sip qw(:all);
 use Sip::Constants qw(:all);
-use Sip::Checksum qw(checksum verify_cksum);
+use Sip::Checksum qw(verify_cksum);
 
 use ILS;
 use ILS::Patron;
@@ -149,7 +150,7 @@ my %handlers = (
 		    protocol => {
 			"2.00" => {
 			    template => "A3A18A10",
-			    template_len => 21,
+			    template_len => 31,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
 				       (FID_TERMINAL_PWD), (FID_PATRON_PWD),
 				       (FID_START_ITEM), (FID_END_ITEM)],
@@ -360,14 +361,6 @@ sub _initialize {
     
     return($self);
 }
-
-# We need to keep a copy of the last message we sent to the SC,
-# in case there's a transmission error and the SC sends us a
-# REQUEST_ACS_RESEND.  If we receive a REQUEST_ACS_RESEND before
-# we've ever sent anything, then we are to respond with a 
-# REQUEST_SC_RESEND (p.16)
-
-my $last_response = '';
 
 sub handle {
     my ($msg, $server, $req) = @_;
@@ -790,35 +783,55 @@ sub add_count {
     return $count;
 }
 
+my @summary_map = (
+		   { func => ILS::Patron->can("hold_items"),
+		     fid => FID_HOLD_ITEMS },
+		   { func => ILS::Patron->can("overdue_items"),
+		     fid => FID_OVERDUE_ITEMS },
+		   { func => ILS::Patron->can("charged_items"),
+		     fid => FID_CHARGED_ITEMS },
+		   { func => ILS::Patron->can("fine_items"),
+		     fid => FID_FINE_ITEMS },
+		   { func => ILS::Patron->can("recall_items"),
+		     fid => FID_RECALL_ITEMS },
+		   { func => ILS::Patron->can("unavail_holds"), 
+		     fid => FID_UNAVAILABLE_HOLD_ITEMS },
+		   { func => ILS::Patron->can("fee_items"),
+		     fid => FID_FEE_ITEMS },
+		   { func => ILS::Patron->can("address"),
+		     fid => FID_HOME_ADDR },
+		   { func => ILS::Patron->can("email_addr"),
+		     fid => FID_EMAIL },
+		   { func => ILS::Patron->can("home_phone"),
+		     fid => FID_HOME_PHONE },
+		   );
+
 sub summary_info {
     my ($patron, $summary, $start, $end) = @_;
     my $resp = '';
     my @itemlist;
     my $summary_type;
-
-    my @info_funcs = (\&{$patron->hold_items},    \&{$patron->overdue_items},
-		      \&{$patron->charged_items}, \&{$patron->fine_items},
-		      \&{$patron->recall_items},  \&{$patron->unavail_holds},
-		      \&{$patron->fee_items},     \&{$patron->home_address},
-		      \&{$patron->email_addr},    \&{$patron->home_phone});
-    my @fids = (FID_HOLD_ITEMS, FID_OVERDUE_ITEMS, FID_CHARGED_ITEMS,
-		FID_FINE_ITEMS, FID_RECALL_ITEMS, FID_UNAVAILABLE_HOLD_ITEMS,
-		FID_FEE_ITEMS, FID_HOME_ADDR, FID_EMAIL, FID_HOME_PHONE);
+    my ($func, $fid);
 
     if (($summary_type = index($summary, 'Y')) == -1) {
 	# No detailed information required
 	return '';
     }
 
-    @itemlist = &{$info_funcs[$summary_type]}($patron, $start, $end);
+    $func = $summary_map[$summary_type]->{func};
+    $fid = $summary_map[$summary_type]->{fid};
+    @itemlist = &$func($patron, $start, $end);
 
     foreach my $i (@itemlist) {
-	$resp .= add_field($fids[$summary_type], $itemlist[$i]);
+	$resp .= add_field($fid, $i);
     }
+
+    return $resp;
 }
+
 sub handle_patron_info {
     my ($self, $server) = @_;
-    my ($lang, $trans_date, $summary) = $self->{fixed_fields};
+    my ($lang, $trans_date, $summary) = @{$self->{fixed_fields}};
     my $fields = $self->{fields};
     my ($inst_id, $patron_id, $terminal_pwd, $patron_pwd, $start, $end);
     my ($resp, $patron, $count);
@@ -833,7 +846,7 @@ sub handle_patron_info {
     $patron = new ILS::Patron $patron_id;
 
     $resp = (PATRON_INFO_RESP);
-    if (!defined($patron) || !$patron->check_password($patron_pwd)) {
+    if (!defined($patron) || (defined($patron_pwd) && !$patron->check_password($patron_pwd))) {
 	# Invalid patron ID, or password mismatch.  Either way
 	# we don't give back any status information.
 	# he has no privileges, no items associated with him,
@@ -858,7 +871,7 @@ sub handle_patron_info {
 	$resp .= add_count('overdue_items', $patron->overdue_items_count);
 	$resp .= add_count('charged_items', $patron->charged_items_count);
 	$resp .= add_count('fine_items', $patron->fine_items_count);
-	$resp .= add_count('recal_items', $patron->recall_items_count);
+	$resp .= add_count('recall_items', $patron->recall_items_count);
 	$resp .= add_count('unavail_holds', $patron->unavail_holds_count);
 	
 	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
