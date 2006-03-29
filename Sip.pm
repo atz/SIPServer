@@ -8,24 +8,38 @@ use strict;
 use warnings;
 use English;
 use Exporter;
+
+use Sys::Syslog qw(syslog);
 use POSIX qw(strftime);
+
 use Sip::Constants qw(SIP_DATETIME);
+use Sip::Checksum qw(checksum);
+
 our @ISA = qw(Exporter);
 
 our @EXPORT_OK = qw(y_or_n timestamp add_field maybe_add denied sipbool
 		    boolspace write_msg
-		    $error_detection $protocol_version $field_delimiter);
+		    $error_detection $protocol_version $field_delimiter
+		    $last_response);
 
 our %EXPORT_TAGS = (
 		    all => [qw(y_or_n timestamp add_field maybe_add
 			       denied sipbool boolspace write_msg
 			       $error_detection $protocol_version
-			       $field_delimiter)]);
+			       $field_delimiter $last_response)]);
 
 
 our $error_detection = 0;
 our $protocol_version = "1.00";
 our $field_delimiter = '|'; 	# Protocol Default
+
+# We need to keep a copy of the last message we sent to the SC,
+# in case there's a transmission error and the SC sends us a
+# REQUEST_ACS_RESEND.  If we receive a REQUEST_ACS_RESEND before
+# we've ever sent anything, then we are to respond with a 
+# REQUEST_SC_RESEND (p.16)
+
+our $last_response = '';
 
 sub timestamp {
     return strftime(SIP_DATETIME, localtime());
