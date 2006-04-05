@@ -23,6 +23,12 @@ sub ok {
     return $self->{ok} ? 1 : 0;	# normalize, just because
 }
 
+sub alert {
+    my $self = shift;
+
+    return $self->{alert} || 0;
+}
+
 sub screen_msg {
     my $self = shift;
 
@@ -47,8 +53,26 @@ sub item {
     return $self->{item};
 }
 
+sub permanent_location {
+    my $self = shift;
+
+    return $self->item->permanent_location || '';
+}
+
+sub sort_bin {
+    my $self = shift;
+
+    return $self->{sort_bin} || '';
+}
+
 sub fee_amount {
     return 0;
+}
+
+sub transaction_id {
+    my $self = shift;
+
+    return $self->{transaction_id};
 }
 
 sub sip_currency {
