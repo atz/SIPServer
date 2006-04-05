@@ -614,22 +614,67 @@ sub handle_checkout {
 
 sub handle_checkin {
     my ($self, $server) = @_;
+    my $account = $server->{account};
+    my $ils = $server->{ils};
+    my $inst = $ils->institution;
     my ($no_block, $trans_date, $return_date);
     my $fields;
+    my ($current_loc, $inst_id, $item_id, $terminal_pwd, $item_props, $cancel);
+    my $resp = CHECKIN;
+    my $status;
 
     ($no_block, $trans_date, $return_date) = @{$self->{fixed_fields}};
     $fields = $self->{fields};
 
-    printf("handle_checkin:\n");
-    printf("    no_block   : %c\n", $no_block);
-    printf("    trans_date : %s\n", $trans_date);
-    printf("    return_date: %s\n", $return_date);
+    $current_loc = $fields->{(FID_CURRENT_LOCN)};
+    $inst_id = $fields->{(FID_INST_ID)};
+    $item_id = $fields->{(FID_ITEM_ID)};
+    $item_props = $fields->{(FID_ITEM_PROPS)};
+    $cancel = $fields->{(FID_CANCEL)};
 
-    foreach my $key (keys(%$fields)) {
-	printf("    $key         : %s\n",
-	       defined($fields->{$key}) ? $fields->{$key} : 'UNDEF' );
+    if ($inst_id ne $inst) {
+	syslog("LOG_WARN", "handle_checkin: received institution id '%s' from terminal, expected '%s'", $inst_id, $inst);
     }
 
+    if ($no_block eq 'Y') {
+	# Off-line transactions, ick.
+	syslog("LOG_WARN", "received no-block checkin from terminal '%s'",
+	       $account->{id});
+	$status = $ils->checkin_no_block($item_id, $trans_date,
+					 $return_date, $item_props, $cancel);
+    } else {
+	$status = $ils->checkin($item_id, $trans_date, $return_date,
+				$current_loc, $item_props, $cancel);
+    }
+
+    $resp .= $status->ok ? 'Y' : 'N';
+    $resp .= $status->resensitize ? 'Y' : 'N';
+    if (defined($status->magnetic_media)) {
+	$resp .= $status->magnetic_media ? 'Y' : 'N';
+    } else {
+	# undef == "Don't know"
+	$resp .= 'U';
+    }
+    $resp .= $status->alert ? 'Y' : 'N';
+    $resp .= Sip::timestamp;
+    $resp .= add_field(FID_INST_ID, $inst_id);
+    $resp .= add_field(FID_ITEM_ID, $item_id);
+    $resp .= add_field(FID_PERM_LOCN, $status->item->permanent_location);
+    $resp .= maybe_add(FID_TITLE_ID, $status->item->title_id);
+
+    if ($protocol_version eq '2.00') {
+	$resp .= maybe_add(FID_SORT_BIN, $status->sort_bin);
+	$resp .= maybe_add(FID_PATRON_ID, $status->patron->id);
+	$resp .= maybe_add(FID_MEDIA_TYPE, $status->item->sip_media_type);
+	$resp .= maybe_add(FID_ITEM_PROPS, $status->item->sip_item_properties);
+    }
+
+    $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
+    $resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
+
+    $self->write_msg($resp, $server);
+
+    return(CHECKIN);
 }
 
 sub handle_block_patron {
@@ -783,6 +828,10 @@ sub add_count {
     return $count;
 }
 
+#
+# Map from offsets in the "summary" field of the Patron Information 
+# message to the corresponding field and handler
+#
 my @summary_map = (
 		   { func => ILS::Patron->can("hold_items"),
 		     fid => FID_HOLD_ITEMS },
@@ -806,6 +855,13 @@ my @summary_map = (
 		     fid => FID_HOME_PHONE },
 		   );
 
+#
+# Build the detailed summary information for the Patron
+# Information Response message based on the first 'Y' that appears
+# in the 'summary' field of the Patron Information reqest.  The
+# specification says that only one 'Y' can appear in that field,
+# and we're going to believe it.
+#
 sub summary_info {
     my ($patron, $summary, $start, $end) = @_;
     my $resp = '';
@@ -818,10 +874,14 @@ sub summary_info {
 	return '';
     }
 
+    syslog("LOG_DEBUG", "Summary_info: index == '%d', field '%s'",
+	   $summary_type, $summary_map[$summary_type]->{fid});
+
     $func = $summary_map[$summary_type]->{func};
     $fid = $summary_map[$summary_type]->{fid};
     @itemlist = &$func($patron, $start, $end);
 
+    syslog("LOG_DEBUG", "summary_info: list = (%s)", join(", ", @itemlist));
     foreach my $i (@itemlist) {
 	$resp .= add_field($fid, $i);
     }
@@ -846,7 +906,8 @@ sub handle_patron_info {
     $patron = new ILS::Patron $patron_id;
 
     $resp = (PATRON_INFO_RESP);
-    if (!defined($patron) || (defined($patron_pwd) && !$patron->check_password($patron_pwd))) {
+    if (!defined($patron)
+	|| (defined($patron_pwd) && !$patron->check_password($patron_pwd))) {
 	# Invalid patron ID, or password mismatch.  Either way
 	# we don't give back any status information.
 	# he has no privileges, no items associated with him,
@@ -924,6 +985,37 @@ sub handle_fee_paid {
     my ($self, $server) = @_;
     my ($trans_date, $fee_type, $pay_type, $currency) = $self->{fixed_fields};
     my $fields = $self->{fields};
+    my ($fee_amt, $inst_id, $patron_id, $terminal_pwd, $patron_pwd);
+    my ($fee_id, $trans_id);
+    my $status;
+    my $resp = FEE_PAID_RESP;
+    
+    $fee_amt = $fields->{(FID_FEE_AMT)};
+    $inst_id = $fields->{(FID_INST_ID)};
+    $patron_id = $fields->{(FID_PATRON_ID)};
+    $patron_pwd = $fields->{(FID_PATRON_PWD)};
+    $fee_id = $fields->{(FID_FEE_ID)};
+    $trans_id = $fields->{(FID_TRANSACTION_ID)};
+
+    if ($inst_id ne $server->{ils}->institution) {
+	syslog("LOG_WARNING", "handle_fee_paid: received inst id '%s' from terminal '%s', expected inst '%s'",
+	       $inst_id, $server->{account}->{id},
+	       $server->{ils}->institution);
+    }
+
+    $status = ILS::pay_fee($patron_id, $patron_pwd, $fee_amt, $fee_type,
+			   $pay_type, $fee_id, $trans_id, $currency);
+
+    $resp .= ($status->ok ? 'Y' : 'N') . Sip::timestamp;
+    $resp .= add_field(FID_INST_ID, $inst_id);
+    $resp .= add_field(FID_PATRON_ID, $patron_id);
+    $resp .= maybe_add(FID_TRANSACTION_ID, $status->transaction_id);
+    $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
+    $resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
+
+    $self->write_msg($resp, $server);
+
+    return(FEE_PAID);
 }
 
 sub handle_item_information {
