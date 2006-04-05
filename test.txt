@@ -1,12 +1,12 @@
 97AZFEF5
-2300120060101    084235AOUWOLS|AAdjfiander|ACterminal password|ADuser password
+2300120060101    084235AOUWOLS|AAdjfiander|ACterminal password|ADuser password|
 2300120060101    084236AOUWOLS|AAmjandkilde|ACterminal password|ADuser password|
-2300120060101    084237AOUWOLS|AAdjfiander|ACterminal password|ADuser password|AY5AZE4D1
-9300CNLoginUserID|COLoginPassword|CPLocationCode|AY5AZEC7B
-11YN20060102    08423520060116    084235AOUWOLS|AAdjfiander|ABSex and the single programmer|ACterminal password|AY3AZDBED
-09Y20060102    08423620060113    084235APUnder the bed|AOUWOLS|ABSex and the single programmer|ACterminal password|AY3AZDB24
-01N20060102    084238AOUWOLS|ALHe's a jerk|AAdjfiander|ACterminal password|AY8AZE6C9
+2300120060101    084237AOUWOLS|AAdjfiander|ACterminal password|ADuser password|
+9300CNLoginUserID|COLoginPassword|CPLocationCode|
+11YN20060329    203000                  AOUWOLS|AAdjfiander|AB1565921879|AC|
+09Y20060102    08423620060113    084235APUnder the bed|AOUWOLS|AB1565921879|ACterminal password|
+01N20060102    084238AOUWOLS|ALHe's a jerk|AAdjfiander|ACterminal password|
 9910302.00AY3AZFCA2
-3520060110    084237AOUWOLS|AAdjfiander|AY2AZF3A4
-1720060110    215612AOUWOLS|ABSex and the single programmer|AY3AZEC6E
-6300020060327    203000      Y   AOUWOLS|AAdjfiander|
+3520060110    084237AOUWOLS|AAdjfiander|
+1720060110    215612AOUWOLS|ABSex and the single programmer|
+6300020060329    201700  Y       AOUWOLS|AAdjfiander|
