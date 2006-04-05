@@ -246,7 +246,7 @@ sub hold_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->hold_items_count + 1 if !defined($end);
+    $end = $self->hold_items_count if !defined($end);
 
     return @{$self->{hold_items}}[$start-1 .. $end-1];
 }
@@ -261,7 +261,7 @@ sub overdue_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->overdue_items_count + 1 if !defined($end);
+    $end = $self->overdue_items_count if !defined($end);
 
     return @{$self->{overdue_items}}[$start-1 .. $end-1];
 }
@@ -276,7 +276,11 @@ sub charged_items {
     my ($self, $start, $end) = shift;
 
     $start = 1 if !defined($start);
-    $end = $self->charged_items_count + 1 if !defined($end);
+    $end = $self->charged_items_count if !defined($end);
+
+    syslog("LOG_DEBUG", "charged_items: start = %d, end = %d", $start, $end);
+    syslog("LOG_DEBUG", "charged_items: items = (%s)",
+	   join(', ', @{$self->{items}}));
 
     return @{$self->{items}}[$start-1 .. $end-1];
 }
@@ -291,7 +295,7 @@ sub fine_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->fine_items_count + 1 if !defined($end);
+    $end = $self->fine_items_count if !defined($end);
 
     return @{$self->{fine_items}}[$start-1 .. $end-1];
 }
@@ -306,7 +310,7 @@ sub recall_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->recall_items_count + 1 if !defined($end);
+    $end = $self->recall_items_count if !defined($end);
 
     return @{$self->{recall_items}}[$start-1 .. $end-1];
 }
@@ -321,7 +325,7 @@ sub unavail_holds {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->unavail_holds_count + 1 if !defined($end);
+    $end = $self->unavail_holds_count if !defined($end);
 
     return @{$self->{unavail_holds}}[$start-1 .. $end-1];
 }
@@ -336,7 +340,7 @@ sub fee_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->fee_items_count + 1 if !defined($end);
+    $end = $self->fee_items_count if !defined($end);
 
     return @{$self->{fee_items}}[$start-1 .. $end-1];
 }
