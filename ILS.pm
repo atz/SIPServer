@@ -13,6 +13,8 @@ use ILS::Item;
 use ILS::Patron;
 use ILS::Transaction;
 use ILS::Transaction::Checkout;
+use ILS::Transaction::Checkin;
+use ILS::Transaction::FeePayment;
 
 our (@ISA, @EXPORT_OK);
 
@@ -62,6 +64,7 @@ sub status_update_ok {
 sub offline_ok {
     return 0;
 }
+
 #
 # Checkout(patron_id, item_id, sc_renew):
 #    patron_id & item_id are the identifiers send by the terminal
@@ -86,7 +89,32 @@ sub checkout {
 	$item->{patron} = $patron_id;
 	push(@{$patron->{items}}, $item_id);
 	$circ->{desensitize} = !$item->magnetic;
+
+	syslog("LOG_DEBUG", "ILS::Checkout: patron %s has checked out %s",
+	       $patron_id, join(', ', @{$patron->{items}}));
     }
+
+    return $circ;
+}
+
+sub checkin {
+    my ($self, $item_id, $trans_date, $return_date,
+	$current_loc, $item_props, $cancel) = @_;
+    my ($patron, $item, $circ);
+
+    $circ = new ILS::Transaction::Checkin;
+    # BEGIN TRANSACTION
+    $circ->{item} = $item = new ILS::Item $item_id;
+
+    # It's ok to check it in if it exists, and if it was checked out
+    $circ->{ok} = ($item && $item->{patron}) ? 1 : 0;
+
+    if ($circ->{ok}) {
+	$circ->{patron} = $patron = new ILS::Patron $item->{patron};
+	delete $item->{patron};
+	$patron->{items} = [ grep {$_ ne $item_id} @{$patron->{items}} ];
+    }
+    # END TRANSACTION
 
     return $circ;
 }
@@ -118,6 +146,23 @@ sub end_patron_session {
 
     # success?, screen_msg, print_line
     return (1, 'Thank you for using Evergreen!', '');
+}
+
+sub pay_fee {
+    my ($patron_id, $patron_pwd, $fee_amt, $fee_type,
+	$pay_type, $fee_id, $trans_id, $currency) = @_;
+    my $trans;
+    my $patron;
+
+    $trans = new ILS::Transaction::FeePayment;
+
+    $patron = new ILS::Patron $patron_id;
+
+    $trans->{transaction_id} = $trans_id;
+    $trans->{patron} = $patron;
+    $trans->{ok} = 1;
+
+    return $trans;
 }
 
 1;
