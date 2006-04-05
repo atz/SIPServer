@@ -70,4 +70,10 @@ sub title_id {
     return $self->{title};
 }
 
+sub permanent_location {
+    my $self = shift;
+
+    return $self->{permanent_location} || '';
+}
+
 1;
