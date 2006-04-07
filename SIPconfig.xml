@@ -37,14 +37,14 @@
 <!-- needs to be one institution stanza for each institution -->
 <!-- named in the accounts above. -->
 <institutions>
-    <institution id="UWOLS" >
+    <institution id="UWOLS" implementation="ILS">
           <policy checkin="true" renewal="false"
 	  	  status_update="false" offline="false"
 		  timeout="600"
 	  	  retries="3" />
     </institution>
 
-    <institution id="LPL">
+    <institution id="LPL" implementation="ILS">
     </institution>
 </institutions>
 </acsconfig>

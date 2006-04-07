@@ -7,6 +7,7 @@ use Sys::Syslog qw(syslog);
 use Net::Server::PreFork;
 use IO::Socket::INET;
 use Data::Dumper;		# For debugging
+require UNIVERSAL::require;
 
 #use Sip qw(readline);
 use Sip::Constants qw(:all);
@@ -218,6 +219,7 @@ sub sip_protocol_loop {
     my $self = shift;
     my $expect;
     my $service = $self->{service};
+    my $config = $self->{config};
     my $input;
 
     local $/ = "\r";		# SIP protocol message terminator
@@ -225,12 +227,24 @@ sub sip_protocol_loop {
     #
     # initialize connection to ILS
     #
-    $self->{ils} = new ILS $self->{account}->{institution};
+    my $module = $config
+                    ->{institutions}
+		    ->{ $self->{account}->{institution} }
+		    ->{implementation};
+    $module->use;
+
+    if ($@) {
+	syslog("LOG_ERR", "%s: Loading ILS implementation '%s' failed, exiting",
+	       $self->{service}, $self->{account}->{institution});
+	die("ILS initialization failed");
+    }
+
+    $self->{ils} = $module->new( $self->{institution} );
 
 
     if (!$self->{ils}) {
 	syslog("LOG_ERR", "%s: ILS connection to '%s' failed, exiting",
-	       $self->{service}, $self->{institution});
+	       $self->{service}, $self->{account}->{institution});
 	die("ILS initialization failed");
     }
     # Now that the terminal has logged in, the first message
