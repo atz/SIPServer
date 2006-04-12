@@ -983,6 +983,7 @@ sub handle_end_patron_session {
 
 sub handle_fee_paid {
     my ($self, $server) = @_;
+    my $ils = $server->{ils};
     my ($trans_date, $fee_type, $pay_type, $currency) = $self->{fixed_fields};
     my $fields = $self->{fields};
     my ($fee_amt, $inst_id, $patron_id, $terminal_pwd, $patron_pwd);
@@ -1003,7 +1004,7 @@ sub handle_fee_paid {
 	       $server->{ils}->institution);
     }
 
-    $status = ILS::pay_fee($patron_id, $patron_pwd, $fee_amt, $fee_type,
+    $status = $ils->pay_fee($patron_id, $patron_pwd, $fee_amt, $fee_type,
 			   $pay_type, $fee_id, $trans_id, $currency);
 
     $resp .= ($status->ok ? 'Y' : 'N') . Sip::timestamp;
