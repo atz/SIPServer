@@ -68,6 +68,12 @@ patron and an item are C<ILS> functions, while others, like
 C<Patron Status> or C<Item Status>, are functions of the
 corresponding sub-module.
 
+In the stub implementation provided with the SIP system, the
+C<$status> objects returned by the various transactions are all
+objects that are subclasses of a virtual C<ILS::Transaction>
+object, but this is not required of the SIP code, as long as the
+status objects support the appropriate methods.
+
 =head2 C<$status = $ils-E<gt>checkout($patron_id, $item_id, $sc_renew)>
 
 Check out (or possibly renew) item with barcode C<$item_id> to
@@ -194,7 +200,7 @@ terminal's receipt printer.
 
 =back
 
-=head2 C<$status = $ils-E<gt>block_patron($patron_id, $card_retained, $blocked_card_msg);
+=head2 C<$status = $ils-E<gt>block_patron($patron_id, $card_retained, $blocked_card_msg);>
 
 Block the account of the patron identified by C<$patron_id>.  If
 the self check unit captured the patron's card, then
@@ -215,3 +221,64 @@ unit.  The function returns a boolean C<$status>, where C<true>
 indicates success, and two strings: a screen message to display
 on the self check unit's console, and a print line to be printed
 on the unit's receipt printer.
+
+=head2 C<$status = $ils-E<gt>pay_fee($patron_id, $patron_pwd, $fee_amt, $fee_type, $pay_type, $fee_id, $trans_id, $currency)>
+
+Reports that the self check terminal handled fee payment from
+patron C<$patron_id> (who has password C<$patron_pwd>, which is
+an optional parameter).  The
+other parameters are:
+
+=over
+
+=item C<$fee_amt>
+
+The amount of the fee.
+
+=item C<$fee_type>
+
+The type of fee, according a table in the SIP protocol
+specification.
+
+=item C<$pay_type>
+
+The payment method.  Defined in the SIP protocol specification.
+
+=item C<$fee_id>
+
+Optional. Identifies which particular fee was paid.  This
+identifier would have been sent from the ILS to the Self Check
+unit by a previous "Patron Information Response" message.
+
+=item C<$trans_id>
+
+Optional. A transaction identifier set by the payment device.
+This should be recorded by the ILS for financial tracking
+purposes.
+
+=item C<$currency>
+
+The currency used to pay the fee.  Use the three-character
+alphabetic codes defined in ISO 4217:1995.
+
+=back
+
+The status object returned by the C<pay_fee> must support the
+following methods:
+
+=over
+
+=item C<ok>
+
+Returns C<true> if the fee was properly recorded; C<false>
+otherwise.
+
+=item C<transaction_id>
+
+Transaction identifier of the transaction.  This parallels the
+optional C<$trans_id> sent from the terminal to the ILS.  This
+may return an empty string.
+
+=item C<screen_msg>, C<print_line>
+
+Defined as for every other transaction.
