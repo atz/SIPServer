@@ -1,0 +1,217 @@
+=for comment -*- text -*-
+
+=head1 NAME
+
+ILS - Portability layer to interface between Open-SIP and ILS
+
+=head1 SYNOPSIS
+
+    use ILS;
+
+    # Initialize connection between SIP and the ILS
+    my $ils = new ILS (institution => 'Foo Public Library');
+
+    # Look up a patron based on barcode/id and return status
+    my $patron = new ILS::Patron $patron_id;
+
+    # Look up item based on barcode and return status
+    my $item = new ILS::Item $patron_id;
+
+    $status = $ils->checkout($patron_id, $item_id, $sc_renew);
+
+    $status = $ils->checkin($item_id, $trans_date, $return_date,
+                            $current_loc, $item_props, $cancel);
+
+    $status = $ils->block_patron($patron_id, $card_retained,
+                                 $blocked_card_msg);
+
+    $status = $ils->end_patron_session($patron_id);
+
+    $status = $ils->pay_fee($patron_id, $patron_pwd, $fee_amt,
+                            $fee_type, $pay_type, $fee_id, $trans_id,
+                            $currency);
+
+=head1 INTRODUCTION
+
+The ILS module defines a basic portability layer between the SIP
+server and the rest of the integrated library system.  It is the
+responsibility of the ILS vendor to implement the functions
+defined by this interface.  This allows the SIP server to be
+reasonably portable between ILS systems (of course, we won't know
+exactly I<how> portable the interface is until it's been used by
+a second ILS.
+
+Because no business logic is embedded in the SIP server code
+itself, the SIP protocol handler functions do almost nothing
+except decode the network messages and pass the parameters to the
+ILS module or one of its submodules, C<ILS::Patron> and
+C<ILS::Item>.
+
+=head1 INITIALIZATION
+
+The first thing the SIP server does, after a terminal has
+successfully logged in, is initialize the ILS module by calling
+
+    $ils = new ILS $institution
+
+where C<$institution> is the name of the institution to which the
+terminal belongs.  In general, this will be the single
+institution that the ILS supports, but it may be that in a
+consortial setting, the SIP server may support connecting to
+different ILSs based on the C<$institution> of the terminal.
+
+=head1 THE TRANSACTIONS
+
+In general, every protocol transaction has a corresponding C<ILS>
+function.  Operations like C<Check In>, which are a function of a
+patron and an item are C<ILS> functions, while others, like
+C<Patron Status> or C<Item Status>, are functions of the
+corresponding sub-module.
+
+=head2 C<$status = $ils-E<gt>checkout($patron_id, $item_id, $sc_renew)>
+
+Check out (or possibly renew) item with barcode C<$item_id> to
+the patron with barcode C<$patron_id>.  If C<$sc_renew> is true,
+then the self-check terminal has been configured to allow
+self-renewal of items, and the ILS may take this into account
+when deciding how to handle the case where C<$item_id> is already
+checked out to C<$patron_id>.
+
+The C<$status> object returned by C<checkout> must support the
+following methods:
+
+=over
+
+=item C<ok>
+
+Returns C<true> if the transaction was successful and C<false> if
+not.  Other methods can be used to find out what went wrong.
+
+=item C<item>
+
+Returns an C<ILS::Item> object corresponding to the item with the
+barcode C<$item_id>, or C<undef> if the barcode is invalid.
+
+=item C<patron>
+
+Returns a C<ILS::Patron> object corresponding to the patron with
+the barcode C<$patron_id>, or C<undef> if the barcode is invalid.
+
+=item C<renew_ok>
+
+Is this transaction actually a renewal?
+
+=item C<desensitize>
+
+Boolean: should the terminal desensitize the item?  This will be
+false for magnetic media, like videocassettes, and for "in
+library" items that are checked to the patron, but not permitted
+to leave the building.
+
+=item C<due_date>
+
+SIP formatted timestamp string indicating when the item is due
+back.
+
+=item C<screen_msg>
+
+Optional. Returns a message that is to be displayed on the
+terminal's screen.
+
+=item C<print_line>
+
+Optional.  Returns a message that is to be printed on the
+terminal's receipt printer.
+
+=back
+
+=head2 C<$status = $ils-E<gt>checkin($item_id, $trans_date, $return_date, $current_loc, $item_props, $cancel)>
+
+Check in item identified by barcode C<$item_id>.  This
+transaction took place at time C<$trans_date> and was effective
+C<$return_date> (to allow for backdating of items to when the
+branch closed, for example). The self check unit which received
+the item is located at C<$current_loc>, and the item has
+properties C<$item_props>.
+
+The C<$status> object returned by the C<checkin> operation must
+support the following methods:
+
+=over
+
+=item C<ok>
+
+Returns C<true> if the transaction was successful and C<false> if
+not.  Other methods can be used to find out what went wrong.
+
+=item C<resensitize>
+
+Does the item need to be resensitized by the self check unit?
+
+=item C<magnetic_media>
+
+Is the item some form of magnetic media (eg, a video or a book
+with an accompanying floppy)?  If this method is defined, it is
+assumed to return either C<true> or C<false> for every item.  If
+there are items for which the ILS does not have "magnetic media"
+information, this method may be left undefined, in which case the
+SIP code will return 'unknown' for this field to the self-check
+unit.
+
+=item C<alert>
+
+Should the self check unit generate an audible alert to notify
+staff that the item has been returned?
+
+=item C<item>
+
+Returns an C<ILS::Item> object.  For more information see
+L<ILS::Item>.
+
+=item C<sort_bin>
+
+Certain self checkin units provide for automated sorting of the
+returned items.  This function returns the bin number into which
+the received item should be placed.  This function may return the
+empty string, or C<undef>, to indicate that no sort bin has been
+specified.
+
+=item C<patron>
+
+Returns an C<ILS::Patron> object containing information about the
+patron who returned the item.  For more information see
+L<ILS::Patron>.
+
+=item C<screen_msg>
+
+Optional. Returns a message that is to be displayed on the
+terminal's screen.
+
+=item C<print_line>
+
+Optional.  Returns a message that is to be printed on the
+terminal's receipt printer.
+
+=back
+
+=head2 C<$status = $ils-E<gt>block_patron($patron_id, $card_retained, $blocked_card_msg);
+
+Block the account of the patron identified by C<$patron_id>.  If
+the self check unit captured the patron's card, then
+C<$card_retained> will be C<true>.  A message indicating why the
+card was retained will be provided by the parameter
+C<$blocked_card_msg>.
+
+This function returns an C<ILS::Patron> object that has been
+updated to indicate that the patron's privileges have been
+blocked, or C<undef> if the patron ID is not valid.
+
+=head2 C<($status, $screen_msg, $print_line) = $ils-E<gt>end_patron_session($patron_id)>
+
+This function informs the ILS that the current patron's session
+has ended.  This allows the ILS to free up any internal state
+that it may be preserving between messages from the self check
+unit.  The function returns a boolean C<$status>, where C<true>
+indicates success, and two strings: a screen message to display
+on the self check unit's console, and a print line to be printed
+on the unit's receipt printer.
