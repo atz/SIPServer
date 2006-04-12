@@ -10,5 +10,5 @@ all:
 run: 
 	perl SIPServer.pm SIPconfig.xml
 
-etags:
+tags:
 	find . -name '*.pm' -print | etags -
