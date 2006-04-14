@@ -475,6 +475,7 @@ sub build_patron_status {
 
 sub handle_patron_status {
     my ($self, $server) = @_;
+    my $ils = $server->{ils};
     my ($lang, $date);
     my $fields;
     my $patron;
@@ -484,10 +485,7 @@ sub handle_patron_status {
     ($lang, $date) = @{$self->{fixed_fields}};
     $fields = $self->{fields};
 
-    if ($fields->{(FID_INST_ID)} ne $account->{institution}) {
-	syslog("LOG_WARN", "handle_patron_status: Inst-ID from SC, %s, doesn't match account Inst-ID, %s",
-	       $fields->{(FID_INST_ID)}, $account->{institution});
-    }
+    $ils->check_inst_id($fields->{(FID_INST_ID)}, "handle_patron_status");
 
     $patron = new ILS::Patron $fields->{(FID_PATRON_ID)};
 
@@ -616,7 +614,6 @@ sub handle_checkin {
     my ($self, $server) = @_;
     my $account = $server->{account};
     my $ils = $server->{ils};
-    my $inst = $ils->institution;
     my ($no_block, $trans_date, $return_date);
     my $fields;
     my ($current_loc, $inst_id, $item_id, $terminal_pwd, $item_props, $cancel);
@@ -632,9 +629,7 @@ sub handle_checkin {
     $item_props = $fields->{(FID_ITEM_PROPS)};
     $cancel = $fields->{(FID_CANCEL)};
 
-    if ($inst_id ne $inst) {
-	syslog("LOG_WARN", "handle_checkin: received institution id '%s' from terminal, expected '%s'", $inst_id, $inst);
-    }
+    $ils->check_inst_id($inst_id, "handle_checkin");
 
     if ($no_block eq 'Y') {
 	# Off-line transactions, ick.
@@ -698,10 +693,7 @@ sub handle_block_patron {
     # passwords, but I have no idea what to do with them.  So,
     # I'll just ignore them for now.
 
-    if ($ils->institution ne $inst_id) {
-	syslog("WARN", "block_patron: recieved message for institution '%s', expecting '%s'",
-	       $inst_id, $ils->institution);
-    }
+    $ils->check_inst_id($inst_id, "block_patron");
 
     $patron = $ils->block_patron($patron_id, $card_retained,
 				 $blocked_card_msg);
@@ -958,9 +950,7 @@ sub handle_end_patron_session {
     ($trans_date) = @{$self->{fixed_fields}};
     $fields = $self->{fields};
 
-    if ($fields->{(FID_INST_ID)} ne $ils->institution) {
-	syslog("WARNING", "handle_end_patron_session: received institution '%s', expected '%s'", $fields->{(FID_INST_ID)}, $ils->institution);
-    }
+    $ils->check_inst_id($fields->{FID_INST_ID}, "handle_end_patron_session");
 
     ($status, $screen_msg, $print_line) = $ils->end_patron_session($fields->{(FID_PATRON_ID)});
 
@@ -1018,19 +1008,69 @@ sub handle_fee_paid {
 
 sub handle_item_information {
     my ($self, $server) = @_;
+    my $ils = $server->{ils};
     my $trans_date;
-    my $fields;
+    my $fields = $self->{fields};
+    my $resp = ITEM_INFO_RESP;
+    my $item;
+    my $i;
 
     ($trans_date) = @{$self->{fixed_fields}};
 
-    printf("handle_item_information:\n");
-    printf("    trans_date: %s\n", $trans_date);
+    $ils->check_inst_id($fields->{(FID_INST_ID)}, "handle_item_information");
 
-    $fields = $self->{fields};
-    foreach my $key (keys(%$fields)) {
-	printf("    $key        : %s\n",
-	       defined($fields->{$key}) ? $fields->{$key} : 'UNDEF' );
+    $item = new ILS::Item $fields->{(FID_ITEM_ID)};
+
+    if (!defined($item)) {
+	# Invalid Item ID
+	# "Other" circ stat, "Other" security marker, "Unknown" fee type
+	$resp .= "010101";
+	$resp .= Sip::timestamp;
+	# Just echo back the invalid item id
+	$resp .= add_field(FID_ITEM_ID, $fields->{(FID_ITEM_ID)});
+	# title id is required, but we don't have one
+	$resp .= add_field(FID_TITLE_ID, '');
+    } else {
+	# Valid Item ID, send the good stuff
+	$resp .= $item->sip_circulation_status;
+	$resp .= $item->sip_security_marker;
+	$resp .= $item->sip_fee_type;
+	$resp .= Sip::timestamp;
+
+	$resp .= add_field(FID_ITEM_ID, $item->id);
+	$resp .= add_field(FID_TITLE_ID, $item->title_id);
+
+	$resp .= maybe_add(FID_MEDIA_TYPE, $item->sip_media_type);
+	$resp .= maybe_add(FID_PERM_LOCN, $item->permanent_location);
+	$resp .= maybe_add(FID_CURRENT_LOCN, $item->current_location);
+	$resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
+
+	if (($i = $item->fee) != 0) {
+	    $resp .= add_field(FID_CURRENCY, $item->fee_currency);
+	    $resp .= add_field(FID_FEE_AMT, $i);
+	}
+	$resp .= maybe_add(FID_OWNER, $item->owner);
+
+	if (($i = $item->hold_queue_length) > 0) {
+	    $resp .= add_field(FID_HOLD_QUEUE_LEN, $i);
+	}
+	if (($i = $item->due_date) != 0) {
+	    $resp .= add_field(FID_DUE_DATE, Sip::timestamp($i));
+	}
+	if (($i = $item->recall_date) != 0) {
+	    $resp .= add_field(FID_RECALL_DATE, Sip::timestamp($i));
+	}
+	if (($i = $item->hold_pickup_date) != 0) {
+	    $resp .= add_field(FID_HOLD_PICKUP_DATE, Sip::timestamp($i));
+	}
+
+	$resp .= maybe_add(FID_SCREEN_MSG, $item->screen_msg);
+	$resp .= maybe_add(FID_PRINT_LINE, $item->print_line);
     }
+
+    $self->write_msg($resp, $server);
+
+    return(ITEM_INFORMATION);
 }
 
 sub handle_item_status_update {
