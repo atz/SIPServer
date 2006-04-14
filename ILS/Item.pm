@@ -9,13 +9,10 @@ package ILS::Item;
 
 use strict;
 use warnings;
-use Exporter;
 
 use Sys::Syslog qw(syslog);
 
-our (@ISA, @EXPORT_OK);
-
-@ISA = qw(Exporter);
+use ILS::Transaction;
 
 our %item_db = (
 		1565921879 => {
@@ -65,6 +62,17 @@ sub sip_item_properties {
     return $self->{sip_item_properties};
 }
 
+sub status_update {
+    my ($self, $props) = @_;
+    my $status = new ILS::Transaction;
+
+    $self->{sip_item_properties} = $props;
+    $status->{ok} = 1;
+
+    return $status;
+}
+
+    
 sub id {
     my $self = shift;
 
