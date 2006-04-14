@@ -42,7 +42,9 @@ our $field_delimiter = '|'; 	# Protocol Default
 our $last_response = '';
 
 sub timestamp {
-    return strftime(SIP_DATETIME, localtime());
+    my $time = $_[0] || time();
+
+    return strftime(SIP_DATETIME, localtime($time));
 }
 
 #
@@ -52,6 +54,10 @@ sub timestamp {
 sub add_field {
     my ($field_id, $value) = @_;
 
+    if (!defined($value)) {
+	syslog("LOG_DEBUG", "add_field: Undefined value being added to '%s'",
+	       $field_id);
+    }
     return $field_id . $value . $field_delimiter;
 }
 #
