@@ -1075,19 +1075,51 @@ sub handle_item_information {
 
 sub handle_item_status_update {
     my ($self, $server) = @_;
-    my $trans_date;
-    my $fields;
+    my $ils = $server->{ils};
+    my ($trans_date, $item_id, $terminal_pwd, $item_props);
+    my $fields = $self->{fields};
+    my $status;
+    my $item;
+    my $resp = ITEM_STATUS_UPDATE_RESP;
 
     ($trans_date) = @{$self->{fixed_fields}};
 
-    printf("handle_item_status_update:\n");
-    printf("    trans_date: %s\n", $trans_date);
+    $ils->check_inst_id($fields->{(FID_INST_ID)});
 
-    $fields = $self->{fields};
-    foreach my $key (keys(%$fields)) {
-	printf("    $key        : %s\n",
-	       defined($fields->{$key}) ? $fields->{$key} : 'UNDEF' );
+    $item_id = $fields->{(FID_ITEM_ID)};
+    $item_props = $fields->{(FID_ITEM_PROPS)};
+
+    if (!defined($item_id)) {
+	syslog("WARNING",
+	       "handle_item_status: received message without Item ID field");
+    } else {
+	$item = new ILS::Item $item_id;
     }
+
+    if (!$item) {
+	# Invalid Item ID
+	$resp .= '0';
+	$resp .= Sip::timestamp;
+	$resp .= add_field(FID_ITEM_ID, $item_id);
+    } else {
+	# Valid Item ID
+
+	$status = $item->status_update($item_props);
+
+	$resp .= $status->ok ? '1' : '0';
+	$resp .= Sip::timestamp;
+
+	$resp .= add_field(FID_ITEM_ID, $item->id);
+	$resp .= add_field(FID_TITLE_ID, $item->title_id);
+	$resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
+    }
+    
+    $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
+    $resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
+
+    $self->write_msg($resp, $server);
+
+    return(ITEM_STATUS_UPDATE);
 }
 
 sub handle_patron_enable {
