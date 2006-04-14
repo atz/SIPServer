@@ -23,6 +23,7 @@ our %item_db = (
 		    id => 1565921879,
 		    sip_media_type => '001',
 		    magnetic_media => 0,
+		    hold_queue => [],
 		}
 		);
 
@@ -64,6 +65,12 @@ sub sip_item_properties {
     return $self->{sip_item_properties};
 }
 
+sub id {
+    my $self = shift;
+
+    return $self->{id};
+}
+
 sub title_id {
     my $self = shift;
 
@@ -75,5 +82,84 @@ sub permanent_location {
 
     return $self->{permanent_location} || '';
 }
+
+sub current_location {
+    my $self = shift;
+
+    return $self->{current_location} || '';
+}
+
+sub sip_circulation_status {
+    my $self = shift;
+
+    if ($self->{patron}) {
+	return '04';
+    } else {
+	return '01';
+    }
+}
+
+sub sip_security_marker {
+    return '02';
+}
+
+sub sip_fee_type {
+    return '01';
+}
+
+sub fee {
+    my $self = shift;
+
+    return $self->{fee} || 0;
+}
+
+sub fee_currency {
+    my $self = shift;
+
+    return $self->{currency} || 'CAD';
+}
+
+sub owner {
+    my $self = shift;
+
+    return 'UWOLS';
+}
+
+sub hold_queue_length {
+    my $self = shift;
+
+    return scalar @{$self->{hold_queue}};
+}
+
+sub due_date {
+    my $self = shift;
+
+    return $self->{due_date} || 0;
+}
+
+sub recall_date {
+    my $self = shift;
+
+    return $self->{recall_date} || 0;
+}
+
+sub hold_pickup_date {
+    my $self = shift;
+
+    return $self->{hold_pickup_date} || 0;
+}
+
+sub screen_msg {
+    my $self = shift;
+
+    return $self->{screen_msg} || '';
+}
+
+sub print_line {
+    my $self = shift;
+
+    return $self->{print_line} || '';
+}
+
 
 1;
