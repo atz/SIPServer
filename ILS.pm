@@ -49,6 +49,15 @@ sub supports {
     return exists($supports{$op}) ? $supports{$op} : 0;
 }
 
+sub check_inst_id {
+    my ($self, $id, $whence) = @_;
+
+    if ($id ne $self->{institution}) {
+	syslog("WARNING", "%s: received institution '%s', expected '%s'",
+	       $whence, $id, $self->{institution});
+    }
+}
+
 sub checkout_ok {
     return 1;
 }
@@ -87,6 +96,7 @@ sub checkout {
 
     if ($circ->{ok}) {
 	$item->{patron} = $patron_id;
+	$item->{due_date} = time + (14*24*60*60); # two weeks
 	push(@{$patron->{items}}, $item_id);
 	$circ->{desensitize} = !$item->magnetic;
 
@@ -112,6 +122,7 @@ sub checkin {
     if ($circ->{ok}) {
 	$circ->{patron} = $patron = new ILS::Patron $item->{patron};
 	delete $item->{patron};
+	delete $item->{due_date};
 	$patron->{items} = [ grep {$_ ne $item_id} @{$patron->{items}} ];
     }
     # END TRANSACTION
