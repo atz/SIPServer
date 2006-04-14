@@ -31,7 +31,7 @@ sub new {
     my $type = ref($class) || $class;
     my $self = {};
 
-    syslog("DEBUG", "new ILS '$institution'");
+    syslog("DEBUG", "new ILS '%s'", $institution->{id});
     $self->{institution} = $institution;
 
     return bless $self, $type;
@@ -40,7 +40,7 @@ sub new {
 sub institution {
     my $self = shift;
 
-    return $self->{institution};
+    return $self->{institution}->{id};
 }
 
 sub supports {
