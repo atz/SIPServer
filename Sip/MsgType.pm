@@ -845,14 +845,6 @@ my @summary_map = (
 		     fid => FID_RECALL_ITEMS },
 		   { func => ILS::Patron->can("unavail_holds"), 
 		     fid => FID_UNAVAILABLE_HOLD_ITEMS },
-		   { func => ILS::Patron->can("fee_items"),
-		     fid => FID_FEE_ITEMS },
-		   { func => ILS::Patron->can("address"),
-		     fid => FID_HOME_ADDR },
-		   { func => ILS::Patron->can("email_addr"),
-		     fid => FID_EMAIL },
-		   { func => ILS::Patron->can("home_phone"),
-		     fid => FID_HOME_PHONE },
 		   );
 
 #
@@ -935,10 +927,15 @@ sub handle_patron_info {
 	$resp .= add_count('recall_items', $patron->recall_items_count);
 	$resp .= add_count('unavail_holds', $patron->unavail_holds_count);
 	
-	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
 	# while the patron ID we got from the SC is valid, let's
 	# use the one returned from the ILS, just in case...
 	$resp .= FID_PATRON_ID . $patron->id . $field_delimiter;
+
+	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
+
+	$resp .= maybe_add(FID_HOME_ADDR,$patron->address);
+	$resp .= maybe_add(FID_EMAIL, $patron->email_addr);
+	$resp .= maybe_add(FID_HOME_PHONE, $patron->home_phone);
 
 	$resp .= summary_info($patron, $summary, $start, $end);
     }
