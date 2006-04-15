@@ -4,7 +4,6 @@
 
 package ILS;
 
-use Exporter;
 use warnings;
 use strict;
 use Sys::Syslog qw(syslog);
@@ -15,10 +14,7 @@ use ILS::Transaction;
 use ILS::Transaction::Checkout;
 use ILS::Transaction::Checkin;
 use ILS::Transaction::FeePayment;
-
-our (@ISA, @EXPORT_OK);
-
-@ISA = qw(Exporter);
+use ILS::Transaction::Hold;
 
 my %supports = (
 		'magnetic media' => 1,
@@ -104,6 +100,8 @@ sub checkout {
 	       $patron_id, join(', ', @{$patron->{items}}));
     }
 
+    # END TRANSACTION
+
     return $circ;
 }
 
@@ -140,7 +138,7 @@ sub end_patron_session {
 }
 
 sub pay_fee {
-    my ($patron_id, $patron_pwd, $fee_amt, $fee_type,
+    my ($self, $patron_id, $patron_pwd, $fee_amt, $fee_type,
 	$pay_type, $fee_id, $trans_id, $currency) = @_;
     my $trans;
     my $patron;
@@ -152,6 +150,192 @@ sub pay_fee {
     $trans->{transaction_id} = $trans_id;
     $trans->{patron} = $patron;
     $trans->{ok} = 1;
+
+    return $trans;
+}
+
+sub add_hold {
+    my ($self, $patron_id, $patron_pwd, $item_id, $title_id,
+	$expiry_date, $pickup_location, $hold_type, $fee_ack) = @_;
+    my ($patron, $item);
+    my $hold;
+    my $trans;
+
+
+    $trans = new ILS::Transaction::Hold;
+
+    # BEGIN TRANSACTION
+    $patron = new ILS::Patron $patron_id;
+    if (!$patron) {
+	$trans->{ok} = 0;
+	$trans->{available} = 'N';
+	$trans->{screen_msg} = "Invalid Password.";
+
+	return $trans;
+    }
+
+    $item = new ILS::Item ($item_id || $title_id);
+    if (!$item) {
+	$trans->{ok} = 0;
+	$trans->{available} = 'N';
+	$trans->{screen_msg} = "No such item.";
+
+	# END TRANSACTION (conditionally)
+	return $trans;
+    } elsif ($item->fee && ($fee_ack ne 'Y')) {
+	$trans->{ok} = 0;
+	$trans->{available} = 'N';
+	$trans->{screen_msg} = "Fee required to place hold.";
+
+	# END TRANSACTION (conditionally)
+	return $trans;
+    }
+
+    $hold = {
+	item_id         => $item->id,
+	patron_id       => $patron->id,
+	expiration_date => $expiry_date,
+	pickup_location => $pickup_location,
+	hold_type       => $hold_type,
+    };
+	
+    $trans->{ok} = 1;
+    $trans->{patron} = $patron;
+    $trans->{item} = $item;
+    $trans->{pickup_location} = $pickup_location;
+
+    if ($item->{patron_id}  || scalar @{$item->{hold_queue}}) {
+	$trans->{available} = 'N';
+    } else {
+	$trans->{available} = 'Y';
+    }
+
+    push(@{$item->{hold_queue}}, $hold);
+    push(@{$patron->{hold_items}}, $hold);
+
+
+    # END TRANSACTION
+    return $trans;
+}
+
+sub cancel_hold {
+    my ($self, $patron_id, $patron_pwd, $item_id, $title_id) = @_;
+    my ($patron, $item, $hold);
+    my $trans;
+
+    $trans = new ILS::Transaction::Hold;
+
+    # BEGIN TRANSACTION
+    $patron = new ILS::Patron $patron_id;
+    if (!$patron) {
+	$trans->{ok} = 0;
+	$trans->{available} = 'N';
+	$trans->{screen_msg} = "Invalid patron barcode.";
+
+	return $trans;
+    }
+
+    $item = new ILS::Item ($item_id || $title_id);
+    if (!$item) {
+	$trans->{ok} = 0;
+	$trans->{available} = 'N';
+	$trans->{screen_msg} = "No such item.";
+
+	# END TRANSACTION (conditionally)
+	return $trans;
+    }
+
+    $trans->{ok} = 0;
+
+    # Remove the hold from the patron's record first
+    foreach my $i (0 .. scalar @{$patron->{hold_items}}-1) {
+	$hold = $patron->{hold_items}[$i];
+
+	if ($hold->{item_id} eq $item_id) {
+	    # found it: now delete it
+	    splice @{$patron->{hold_items}}, $i, 1;
+	    $trans->{ok} = 1;
+	    last;
+	}
+    }
+
+    if (!$trans->{ok}) {
+	# We didn't find it on the patron record
+	$trans->{available} = 'N';
+	$trans->{screen_msg} = "No such hold on patron record.";
+
+	# END TRANSACTION (conditionally)
+	return $trans;
+    }
+
+    # Now, remove it from the item record.  If it was on the patron
+    # record but not on the item record, we'll treat that as success.
+    foreach my $i (0 .. scalar @{$item->{hold_queue}}) {
+	$hold = $item->{hold_queue}[$i];
+
+	if ($hold->{patron_id} eq $patron->id) {
+	    # found it: delete it.
+	    splice @{$item->{hold_queue}}, $i, 1;
+	    last;
+	}
+    }
+
+    $trans->{available} = 'Y';
+    $trans->{screen_msg} = "Hold Cancelled.";
+    $trans->{patron} = $patron;
+    $trans->{item} = $item;
+
+    return $trans;
+}
+
+
+# The patron and item id's can't be altered, but the 
+# date, location, and type can.
+sub alter_hold {
+    my ($self, $patron_id, $patron_pwd, $item_id, $title_id,
+	$expiry_date, $pickup_location, $hold_type, $fee_ack) = @_;
+    my ($patron, $item);
+    my $hold;
+    my $trans;
+
+    $trans = new ILS::Transaction::Hold;
+
+    $trans->{ok} = 0;
+    $trans->{available} = 'N';
+
+    # BEGIN TRANSACTION
+    $patron = new ILS::Patron $patron_id;
+    if (!$patron) {
+	$trans->{screen_msg} = "Invalid patron barcode.";
+
+	return $trans;
+    }
+
+    foreach my $i (0 .. scalar @{$patron->{hold_items}}) {
+	$hold = $patron->{hold_items}[$i];
+
+	if ($hold->{item_id} eq $item_id) {
+	    # Found it.  So fix it.
+	    $hold->{expiration_date} = $expiry_date if $expiry_date;
+	    $hold->{pickup_location} = $pickup_location if $pickup_location;
+	    $hold->{hold_type} = $hold_type if $hold_type;
+
+	    $trans->{ok} = 1;
+	    $trans->{screen_msg} = "Hold updated.";
+	    $trans->{patron} = $patron;
+	    $trans->{item} = new ILS::Item $hold->{item_id};
+	    last;
+	}
+    }
+
+    # The same hold structure is linked into both the patron's
+    # list of hold items and into the queue of outstanding holds
+    # for the item, so we don't need to search the hold queue for
+    # the item, since it's already been updated by the patron code.
+
+    if (!$trans->{ok}) {
+	$trans->{screen_msg} = "No such outstanding hold.";
+    }
 
     return $trans;
 }

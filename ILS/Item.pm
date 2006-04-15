@@ -139,6 +139,18 @@ sub hold_queue_length {
     return scalar @{$self->{hold_queue}};
 }
 
+sub hold_queue_position {
+    my ($self, $patron_id) = @_;
+    my $i;
+
+    for ($i = 0; $i < scalar @{$self->{hold_queue}}; $i += 1) {
+	if ($self->{hold_queue}[$i]->{patron_id} eq $patron_id) {
+	    return $i + 1;
+	}
+    }
+    return 0;
+}
+
 sub due_date {
     my $self = shift;
 

@@ -85,6 +85,12 @@ sub sip_fee_type {
     return $self->{sip_fee_type} || '01'; # "Other/Unknown"
 }
 
+sub available {
+    my $self = shift;
+
+    return $self->{available} || 'N'; # Assume that it's not available
+}
+
 sub desensitize {
     my $self = shift;
 
