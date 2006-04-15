@@ -52,9 +52,9 @@ sub supports {
 sub check_inst_id {
     my ($self, $id, $whence) = @_;
 
-    if ($id ne $self->{institution}) {
+    if ($id ne $self->{institution}->{id}) {
 	syslog("WARNING", "%s: received institution '%s', expected '%s'",
-	       $whence, $id, $self->{institution});
+	       $whence, $id, $self->{institution}->{id});
     }
 }
 
@@ -128,26 +128,6 @@ sub checkin {
     # END TRANSACTION
 
     return $circ;
-}
-
-sub block_patron {
-    my ($self, $patron_id, $card_retained, $blocked_card_msg) = @_;
-    my $patron;
-
-    $patron = new ILS::Patron $patron_id;
-
-    if (!$patron) {
-	syslog("WARNING", "ILS::block_patron: attempting to block non-existant patron '%s'", $patron_id);
-	return undef;
-    }
-
-    foreach my $field ('charge_ok', 'renew_ok', 'recall_ok', 'hold_ok') {
-	$patron->{$field} = 'N';
-    }
-
-    $patron->{screen_msg} = $blocked_card_msg || "Card Blocked.  Please contact library staff";
-
-    return $patron;
 }
 
 # If the ILS caches patron information, this lets it free
