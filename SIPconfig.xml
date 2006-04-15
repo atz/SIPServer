@@ -4,7 +4,7 @@
   
   <listeners>
     <service
-      port="192.168.1.100:8080/tcp"
+      port="0:8080/tcp"
       transport="http"
       protocol="NCIP/1.0" />
 
