@@ -225,7 +225,7 @@ my %handlers = (
 		    handler => \&handle_hold,
 		    protocol => {
 			"2.00" => {
-			    template => "CA18",
+			    template => "AA18",
 			    template_len => 19,
 			    fields => [(FID_EXPIRATION), (FID_PICKUP_LOCN),
 				       (FID_HOLD_TYPE), (FID_INST_ID),
@@ -1173,21 +1173,77 @@ sub handle_patron_enable {
 
 sub handle_hold {
     my ($self, $server) = @_;
+    my $ils = $server->{ils};
     my ($hold_mode, $trans_date);
-    my $fields;
+    my ($expiry_date, $pickup_locn, $hold_type, $patron_id, $patron_pwd);
+    my ($item_id, $title_id, $fee_ack);
+    my $fields = $self->{fields};
+    my $status;
+    my $resp = HOLD_RESP;
 
     ($hold_mode, $trans_date) = @{$self->{fixed_fields}};
 
+    $ils->check_inst_id($fields->{(FID_INST_ID)}, "handle_hold");
 
-    printf("handle_hold:\n");
-    printf("    hold_mode : %c\n", $hold_mode);
-    printf("    trans_date: %s\n", $trans_date);
+    $patron_id = $fields->{(FID_PATRON_ID)};
+    $expiry_date = $fields->{(FID_EXPIRATION)} || '';
+    $pickup_locn = $fields->{(FID_PICKUP_LOCN)} || '';
+    $hold_type = $fields->{(FID_HOLD_TYPE)} || '2'; # Any copy of title
+    $patron_pwd = $fields->{(FID_PATRON_PWD)};
+    $item_id = $fields->{(FID_ITEM_ID)} || '';
+    $title_id = $fields->{(FID_TITLE_ID)} || '';
+    $fee_ack = $fields->{(FID_FEE_ACK)} || 'N';
 
-    $fields = $self->{fields};
-    foreach my $key (keys(%$fields)) {
-	printf("    $key        : %s\n",
-	       defined($fields->{$key}) ? $fields->{$key} : 'UNDEF' );
+    if ($hold_mode eq '+') {
+	$status = $ils->add_hold($patron_id, $patron_pwd,
+				 $item_id, $title_id,
+				 $expiry_date, $pickup_locn, $hold_type,
+				 $fee_ack);
+    } elsif ($hold_mode eq '-') {
+	$status = $ils->cancel_hold($patron_id, $patron_pwd,
+				    $item_id, $title_id);
+    } elsif ($hold_mode eq '*') {
+	$status = $ils->alter_hold($patron_id, $patron_pwd,
+				   $item_id, $title_id,
+				   $expiry_date, $pickup_locn, $hold_type,
+				   $fee_ack);
+    } else {
+	syslog("WARNING", "handle_hold: Unrecognized hold mode '%s' from terminal '%s'",
+	       $hold_mode, $server->{account}->{id});
+	$status = new ILS::Transaction;
+	$status->{ok} = 0;
+	$status->{available} = 'N';
+	$status->{screen_msg} = "System error. Please contact library status";
     }
+
+    $resp .= $status->ok ? '1' : '0';
+    $resp .= sipbool($status->available);
+    $resp .= Sip::timestamp;
+
+    if ($status->ok) {
+	$resp .= add_field(FID_INST_ID, $ils->institution);
+	$resp .= add_field(FID_PATRON_ID, $status->patron->id);
+
+	if ($status->expiration_date) {
+	    $resp .= maybe_add(FID_EXPIRATION,
+			       Sip::timestamp($status->expiration_date));
+	}
+	$resp .= maybe_add(FID_QUEUE_POS, $status->queue_position);
+	$resp .= maybe_add(FID_PICKUP_LOCN, $status->pickup_location);
+	$resp .= maybe_add(FID_ITEM_ID, $status->item->id);
+	$resp .= maybe_add(FID_TITLE_ID, $status->item->title_id);
+    } else {
+	# Not ok.  still need required fields
+	$resp .= add_field(FID_INST_ID, $ils->institution);
+	$resp .= add_field(FID_PATRON_ID, $patron_id);
+    }
+
+    $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
+    $resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
+
+    $self->write_msg($resp, $server);
+
+    return(HOLD);
 }
 
 sub handle_renew {
