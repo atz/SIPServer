@@ -695,8 +695,7 @@ sub handle_block_patron {
 
     $ils->check_inst_id($inst_id, "block_patron");
 
-    $patron = $ils->block_patron($patron_id, $card_retained,
-				 $blocked_card_msg);
+    $patron = new ILS::Patron $patron_id;
 
     # The correct response for a "Block Patron" message is a
     # "Patron Status Response", so use that handler to generate
@@ -707,6 +706,11 @@ sub handle_block_patron {
     # we'll just say, "Unspecified", as per the spec.  Let the 
     # terminal default to something that, one hopes, will be 
     # intelligible
+    if ($patron) {
+	# Valid patron id
+	$patron->block($card_retained, $blocked_card_msg);
+    }
+
     $resp = build_patron_status($patron, '000', $fields);
 
     $self->write_msg($resp, $server);
@@ -921,7 +925,7 @@ sub handle_patron_info {
 	
 	# while the patron ID we got from the SC is valid, let's
 	# use the one returned from the ILS, just in case...
-	$resp .= FID_PATRON_ID . $patron->id . $field_delimiter;
+	$resp .= add_field(FID_PATRON_ID, $patron->id);
 
 	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
 
@@ -1124,19 +1128,47 @@ sub handle_item_status_update {
 
 sub handle_patron_enable {
     my ($self, $server) = @_;
-    my $trans_date;
-    my $fields;
+    my $ils = $server->{ils};
+    my $fields = $self->{fields};
+    my ($trans_date, $patron_id, $terminal_pwd, $patron_pwd);
+    my ($status, $patron);
+    my $resp = PATRON_ENABLE_RESP;
 
     ($trans_date) = @{$self->{fixed_fields}};
+    $patron_id = $fields->{(FID_PATRON_ID)};
+    $patron_pwd = $fields->{(FID_PATRON_PWD)};
 
-    printf("handle_patron_enable:\n");
-    printf("    trans_date: %s\n", $trans_date);
+    syslog("DEBUG", "handle_patron_enable: patron_id: '%s', patron_pwd: '%s'",
+	   $patron_id, $patron_pwd);
 
-    $fields = $self->{fields};
-    foreach my $key (keys(%$fields)) {
-	printf("    $key        : %s\n",
-	       defined($fields->{$key}) ? $fields->{$key} : 'UNDEF' );
+    $patron = new ILS::Patron $patron_id;
+
+    if (!defined($patron) || !$patron->check_password($patron_pwd)) {
+	# Invalid patron ID or password mismatch
+	$resp .= 'YYYY' . (' ' x 10) . '000' . Sip::timestamp();
+	$resp .= add_field(FID_PATRON_ID, $patron_id);
+	$resp .= add_field(FID_PERSONAL_NAME, '');
+	$resp .= add_field(FID_VALID_PATRON, 'N');
+	$resp .= add_field(FID_VALID_PATRON_PWD, 'N');
+    } else {
+	# valid patron
+	$status = $patron->enable;
+	$resp .= patron_status_string($patron);
+	$resp .= $patron->language . Sip::timestamp();
+
+	$resp .= add_field(FID_PATRON_ID, $patron->id);
+	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
+	$resp .= add_field(FID_VALID_PATRON_PWD, 'Y');
+	$resp .= add_field(FID_VALID_PATRON, 'Y');
+	$resp .= maybe_add(FID_SCREEN_MSG, $patron->screen_msg);
+	$resp .= maybe_add(FID_PRINT_LINE, $patron->print_line);
     }
+
+    $resp .= add_field(FID_INST_ID, $ils->institution);
+
+    $self->write_msg($resp, $server);
+
+    return(PATRON_ENABLE);
 }
 
 sub handle_hold {
