@@ -95,6 +95,12 @@ sub home_phone {
     return $self->{home_phone};
 }
 
+sub language {
+    my $self = shift;
+
+    return $self->{language} || '000'; # Unspecified
+}
+
 sub charge_ok {
     my $self = shift;
 
@@ -350,6 +356,35 @@ sub fee_items_count {
 
     return scalar @{$self->{fee_items}};
 }
+
+sub block {
+    my ($self, $card_retained, $blocked_card_msg) = @_;
+
+    foreach my $field ('charge_ok', 'renew_ok', 'recall_ok', 'hold_ok') {
+	$self->{$field} = 'N';
+    }
+
+    $self->{screen_msg} = $blocked_card_msg || "Card Blocked.  Please contact library staff";
+
+    return $self;
+}
+
+sub enable {
+    my $self = shift;
+
+    foreach my $field ('charge_ok', 'renew_ok', 'recall_ok', 'hold_ok') {
+	$self->{$field} = 'Y';
+    }
+
+    syslog("DEBUG", "Patron(%s)->enable: charge: %s, renew:%s, recall:%s",
+	   $self->{id}, $self->{charge_ok}, $self->{renew_ok},
+	   $self->{recall_ok});
+
+    $self->{screen_msg} = "All privileges restored.";
+
+    return $self;
+}
+
 #
 # Messages
 #
