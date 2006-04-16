@@ -133,10 +133,10 @@ sub owner {
     return 'UWOLS';
 }
 
-sub hold_queue_length {
+sub hold_queue {
     my $self = shift;
 
-    return scalar @{$self->{hold_queue}};
+    return @{$self->{hold_queue}};
 }
 
 sub hold_queue_position {
@@ -181,5 +181,9 @@ sub print_line {
     return $self->{print_line} || '';
 }
 
+sub available {
+    my $self = shift;
 
+    return (!$self->{patron_id} && !$self->{hold_queue});
+}
 1;
