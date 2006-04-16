@@ -15,6 +15,7 @@ use ILS::Transaction::Checkout;
 use ILS::Transaction::Checkin;
 use ILS::Transaction::FeePayment;
 use ILS::Transaction::Hold;
+use ILS::Transaction::Renew;
 
 my %supports = (
 		'magnetic media' => 1,
@@ -340,4 +341,56 @@ sub alter_hold {
     return $trans;
 }
 
+sub renew {
+    my ($self, $patron_id, $patron_pwd, $item_id, $title_id,
+	$no_block, $nb_due_date, $third_party,
+	$item_props, $fee_ack) = @_;
+    my ($patron, $item);
+    my $trans;
+
+    $trans = new ILS::Transaction::Renew;
+    $trans->{ok} = 0;
+    $trans->{renewal_ok} = 0;
+
+    $trans->{patron} = $patron = new ILS::Patron $patron_id;
+    if (!$patron) {
+	$trans->{screen_msg} = "Invalid patron barcode.";
+
+	return $trans;
+    } elsif ($patron->{renew_ok} eq 'N') {
+	
+	$trans->{screen_msg} = "Renewals not allowed.";
+
+	return $trans;
+    }
+
+    foreach my $i (@{$patron->{items}}) {
+	if ($i == $item_id) {
+	    # We have it checked out
+	    $item = new ILS::Item $item_id;
+	    $trans->{item} = $item;
+	    $trans->{renewal_ok} = 'Y';
+
+	    $trans->{desensitize} = 0;	# It's already checked out
+	    
+	    if ($no_block eq 'Y') {
+		$item->{due_date} = $nb_due_date;
+	    } else {
+		$item->{due_date} = time + (14*24*60*60); # two weeks
+	    }
+	    if ($item_props) {
+		$item->{sip_item_properties} = $item_props;
+	    }
+	    $trans->{ok} = 1;
+	    $trans->{renewal_ok} = 1;
+
+	    return $trans;
+	}
+    }
+
+    # It's not checked out to $patron_id
+    $trans->{screen_msg} = "Item not checked out to " . $patron->name;
+
+    return $trans;
+}
 1;
