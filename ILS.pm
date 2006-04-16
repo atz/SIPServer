@@ -16,6 +16,7 @@ use ILS::Transaction::Checkin;
 use ILS::Transaction::FeePayment;
 use ILS::Transaction::Hold;
 use ILS::Transaction::Renew;
+use ILS::Transaction::RenewAll;
 
 my %supports = (
 		'magnetic media' => 1,
@@ -86,16 +87,16 @@ sub checkout {
    $circ = new ILS::Transaction::Checkout;
 
     # BEGIN TRANSACTION
-    $circ->{patron} = $patron = new ILS::Patron $patron_id;
-    $circ->{item} = $item = new ILS::Item $item_id;
+    $circ->patron($patron = new ILS::Patron $patron_id);
+    $circ->item($item = new ILS::Item $item_id);
 
-    $circ->{ok} = ($circ->{patron} && $circ->{item}) ? 1 : 0;
+    $circ->ok($circ->patron && $circ->item);
 
-    if ($circ->{ok}) {
+    if ($circ->ok) {
 	$item->{patron} = $patron_id;
 	$item->{due_date} = time + (14*24*60*60); # two weeks
 	push(@{$patron->{items}}, $item_id);
-	$circ->{desensitize} = !$item->magnetic;
+	$circ->desensitize(!$item->magnetic);
 
 	syslog("LOG_DEBUG", "ILS::Checkout: patron %s has checked out %s",
 	       $patron_id, join(', ', @{$patron->{items}}));
@@ -113,13 +114,13 @@ sub checkin {
 
     $circ = new ILS::Transaction::Checkin;
     # BEGIN TRANSACTION
-    $circ->{item} = $item = new ILS::Item $item_id;
+    $circ->item($item = new ILS::Item $item_id);
 
     # It's ok to check it in if it exists, and if it was checked out
-    $circ->{ok} = ($item && $item->{patron}) ? 1 : 0;
+    $circ->ok($item && $item->{patron});
 
-    if ($circ->{ok}) {
-	$circ->{patron} = $patron = new ILS::Patron $item->{patron};
+    if ($circ->ok) {
+	$circ->patron($patron = new ILS::Patron $item->{patron});
 	delete $item->{patron};
 	delete $item->{due_date};
 	$patron->{items} = [ grep {$_ ne $item_id} @{$patron->{items}} ];
@@ -148,9 +149,9 @@ sub pay_fee {
 
     $patron = new ILS::Patron $patron_id;
 
-    $trans->{transaction_id} = $trans_id;
-    $trans->{patron} = $patron;
-    $trans->{ok} = 1;
+    $trans->transaction_id($trans_id);
+    $trans->patron($patron);
+    $trans->ok(1);
 
     return $trans;
 }
@@ -168,25 +169,22 @@ sub add_hold {
     # BEGIN TRANSACTION
     $patron = new ILS::Patron $patron_id;
     if (!$patron) {
-	$trans->{ok} = 0;
-	$trans->{available} = 'N';
-	$trans->{screen_msg} = "Invalid Password.";
+	$trans->available('N');
+	$trans->screen_msg("Invalid Password.");
 
 	return $trans;
     }
 
     $item = new ILS::Item ($item_id || $title_id);
     if (!$item) {
-	$trans->{ok} = 0;
-	$trans->{available} = 'N';
-	$trans->{screen_msg} = "No such item.";
+	$trans->available('N');
+	$trans->screen_msg("No such item.");
 
 	# END TRANSACTION (conditionally)
 	return $trans;
     } elsif ($item->fee && ($fee_ack ne 'Y')) {
-	$trans->{ok} = 0;
-	$trans->{available} = 'N';
-	$trans->{screen_msg} = "Fee required to place hold.";
+	$trans->available = 'N';
+	$trans->screen_msg = "Fee required to place hold.";
 
 	# END TRANSACTION (conditionally)
 	return $trans;
@@ -200,16 +198,10 @@ sub add_hold {
 	hold_type       => $hold_type,
     };
 	
-    $trans->{ok} = 1;
-    $trans->{patron} = $patron;
-    $trans->{item} = $item;
-    $trans->{pickup_location} = $pickup_location;
-
-    if ($item->{patron_id}  || scalar @{$item->{hold_queue}}) {
-	$trans->{available} = 'N';
-    } else {
-	$trans->{available} = 'Y';
-    }
+    $trans->ok(1);
+    $trans->patron($patron);
+    $trans->item($item);
+    $trans->pickup_location($pickup_location);
 
     push(@{$item->{hold_queue}}, $hold);
     push(@{$patron->{hold_items}}, $hold);
@@ -229,24 +221,18 @@ sub cancel_hold {
     # BEGIN TRANSACTION
     $patron = new ILS::Patron $patron_id;
     if (!$patron) {
-	$trans->{ok} = 0;
-	$trans->{available} = 'N';
-	$trans->{screen_msg} = "Invalid patron barcode.";
+	$trans->screen_msg = "Invalid patron barcode.";
 
 	return $trans;
     }
 
     $item = new ILS::Item ($item_id || $title_id);
     if (!$item) {
-	$trans->{ok} = 0;
-	$trans->{available} = 'N';
-	$trans->{screen_msg} = "No such item.";
+	$trans->screen_msg = "No such item.";
 
 	# END TRANSACTION (conditionally)
 	return $trans;
     }
-
-    $trans->{ok} = 0;
 
     # Remove the hold from the patron's record first
     foreach my $i (0 .. scalar @{$patron->{hold_items}}-1) {
@@ -255,15 +241,14 @@ sub cancel_hold {
 	if ($hold->{item_id} eq $item_id) {
 	    # found it: now delete it
 	    splice @{$patron->{hold_items}}, $i, 1;
-	    $trans->{ok} = 1;
+	    $trans->ok(1);
 	    last;
 	}
     }
 
-    if (!$trans->{ok}) {
+    if (!$trans->ok) {
 	# We didn't find it on the patron record
-	$trans->{available} = 'N';
-	$trans->{screen_msg} = "No such hold on patron record.";
+	$trans->screen_msg = "No such hold on patron record.";
 
 	# END TRANSACTION (conditionally)
 	return $trans;
@@ -281,10 +266,9 @@ sub cancel_hold {
 	}
     }
 
-    $trans->{available} = 'Y';
-    $trans->{screen_msg} = "Hold Cancelled.";
-    $trans->{patron} = $patron;
-    $trans->{item} = $item;
+    $trans->screen_msg("Hold Cancelled.");
+    $trans->patron($patron);
+    $trans->item($item);
 
     return $trans;
 }
@@ -301,13 +285,10 @@ sub alter_hold {
 
     $trans = new ILS::Transaction::Hold;
 
-    $trans->{ok} = 0;
-    $trans->{available} = 'N';
-
     # BEGIN TRANSACTION
     $patron = new ILS::Patron $patron_id;
     if (!$patron) {
-	$trans->{screen_msg} = "Invalid patron barcode.";
+	$trans->screen_msg("Invalid patron barcode.");
 
 	return $trans;
     }
@@ -321,10 +302,10 @@ sub alter_hold {
 	    $hold->{pickup_location} = $pickup_location if $pickup_location;
 	    $hold->{hold_type} = $hold_type if $hold_type;
 
-	    $trans->{ok} = 1;
-	    $trans->{screen_msg} = "Hold updated.";
-	    $trans->{patron} = $patron;
-	    $trans->{item} = new ILS::Item $hold->{item_id};
+	    $trans->ok(1);
+	    $trans->screen_msg("Hold updated.");
+	    $trans->patron($patron);
+	    $trans->item(new ILS::Item $hold->{item_id});
 	    last;
 	}
     }
@@ -334,8 +315,8 @@ sub alter_hold {
     # for the item, so we don't need to search the hold queue for
     # the item, since it's already been updated by the patron code.
 
-    if (!$trans->{ok}) {
-	$trans->{screen_msg} = "No such outstanding hold.";
+    if (!$trans->ok) {
+	$trans->screen_msg("No such outstanding hold.");
     }
 
     return $trans;
@@ -349,17 +330,15 @@ sub renew {
     my $trans;
 
     $trans = new ILS::Transaction::Renew;
-    $trans->{ok} = 0;
-    $trans->{renewal_ok} = 0;
 
-    $trans->{patron} = $patron = new ILS::Patron $patron_id;
+    $trans->patron($patron = new ILS::Patron $patron_id);
     if (!$patron) {
-	$trans->{screen_msg} = "Invalid patron barcode.";
+	$trans->screen_msg("Invalid patron barcode.");
 
 	return $trans;
     } elsif ($patron->{renew_ok} eq 'N') {
 	
-	$trans->{screen_msg} = "Renewals not allowed.";
+	$trans->screen_msg("Renewals not allowed.");
 
 	return $trans;
     }
@@ -368,10 +347,10 @@ sub renew {
 	if ($i == $item_id) {
 	    # We have it checked out
 	    $item = new ILS::Item $item_id;
-	    $trans->{item} = $item;
-	    $trans->{renewal_ok} = 'Y';
+	    $trans->item($item);
+	    $trans->renewal_ok(1);
 
-	    $trans->{desensitize} = 0;	# It's already checked out
+	    $trans->desensitize(0);	# It's already checked out
 	    
 	    if ($no_block eq 'Y') {
 		$item->{due_date} = $nb_due_date;
@@ -381,16 +360,58 @@ sub renew {
 	    if ($item_props) {
 		$item->{sip_item_properties} = $item_props;
 	    }
-	    $trans->{ok} = 1;
-	    $trans->{renewal_ok} = 1;
+	    $trans->ok(1);
+	    $trans->renewal_ok(1);
 
 	    return $trans;
 	}
     }
 
     # It's not checked out to $patron_id
-    $trans->{screen_msg} = "Item not checked out to " . $patron->name;
+    $trans->screen_msg("Item not checked out to " . $patron->name);
 
     return $trans;
 }
+
+sub renew_all {
+    my ($self, $patron_id, $patron_pwd, $fee_ack) = @_;
+    my ($patron, $item_id);
+    my $trans;
+
+    $trans = new ILS::Transaction::RenewAll;
+    
+    $trans->patron($patron = new ILS::Patron $patron_id);
+
+    if (!defined($patron)) {
+	$trans->screen_msg("Invalid patron barcode.");
+	return $trans;
+    } elsif (!$patron->renew_ok) {
+	$trans->screen_msg("Renewals not allowed.");
+	return $trans;
+    }
+
+    foreach $item_id (@{$patron->{items}}) {
+	my $item = new ILS::Item $item_id;
+
+	if (!defined($item)) {
+	    syslog("WARNING",
+		   "renew_all: Invalid item id associated with patron '%s'",
+		   $patron->id);
+	    next;
+	}
+
+	if ($item->hold_queue) {
+	    # Can't renew if there are outstanding holds
+	    push @{$trans->unrenewed}, $item_id;
+	} else {
+	    $item->{due_date} = time + (14*24*60*60); # two weeks hence
+	    push @{$trans->renewed}, $item_id;
+	}
+    }
+
+    $trans->ok(1);
+
+    return $trans;
+}
+
 1;
