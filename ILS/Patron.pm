@@ -59,8 +59,8 @@ sub new {
     if (!exists($patron_db{$patron_id})) {
 	return undef;
     }
-
     $self = $patron_db{$patron_id};
+
     bless $self, $type;
     return $self;
 }
@@ -167,10 +167,18 @@ sub items_billed {
     return $self->{items_billed};
 }
 
+sub password {
+    my $self = shift;
+
+    return $self->{password};
+}
+
 sub check_password {
     my ($self, $pwd) = @_;
 
-    return ($self->{password} eq $pwd);
+    # If the patron doesn't have a password,
+    # then we don't need to check
+    return (!$self->{password} || ($pwd && ($self->{password} eq $pwd)));
 }
 
 sub currency {
