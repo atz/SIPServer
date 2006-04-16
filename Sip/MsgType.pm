@@ -553,7 +553,7 @@ sub handle_checkout {
 	$resp .= add_field(FID_PATRON_ID, $patron_id);
 	$resp .= add_field(FID_ITEM_ID, $item_id);
 	$resp .= add_field(FID_TITLE_ID, $item->title_id);
-	$resp .= add_field(FID_DUE_DATE, $status->due_date);
+	$resp .= add_field(FID_DUE_DATE, $item->due_date);
 
 	$resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
@@ -618,6 +618,7 @@ sub handle_checkin {
     my $fields;
     my ($current_loc, $inst_id, $item_id, $terminal_pwd, $item_props, $cancel);
     my $resp = CHECKIN;
+    my ($patron, $item);
     my $status;
 
     ($no_block, $trans_date, $return_date) = @{$self->{fixed_fields}};
@@ -642,12 +643,14 @@ sub handle_checkin {
 				$current_loc, $item_props, $cancel);
     }
 
+    $patron = $status->patron;
+    $item = $status->item;
+
     $resp .= $status->ok ? 'Y' : 'N';
     $resp .= $status->resensitize ? 'Y' : 'N';
-    if (defined($status->magnetic_media)) {
-	$resp .= $status->magnetic_media ? 'Y' : 'N';
+    if ($ils->supports('magnetic media')) {
+	$resp .= sipbool($item->magnetic);
     } else {
-	# undef == "Don't know"
 	$resp .= 'U';
     }
     $resp .= $status->alert ? 'Y' : 'N';
@@ -1221,7 +1224,6 @@ sub handle_hold {
     $resp .= Sip::timestamp;
 
     if ($status->ok) {
-	$resp .= add_field(FID_INST_ID, $ils->institution);
 	$resp .= add_field(FID_PATRON_ID, $status->patron->id);
 
 	if ($status->expiration_date) {
@@ -1234,10 +1236,10 @@ sub handle_hold {
 	$resp .= maybe_add(FID_TITLE_ID, $status->item->title_id);
     } else {
 	# Not ok.  still need required fields
-	$resp .= add_field(FID_INST_ID, $ils->institution);
 	$resp .= add_field(FID_PATRON_ID, $patron_id);
     }
 
+    $resp .= add_field(FID_INST_ID, $ils->institution);
     $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
     $resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
 
@@ -1248,24 +1250,84 @@ sub handle_hold {
 
 sub handle_renew {
     my ($self, $server) = @_;
+    my $ils = $server->{ils};
     my ($third_party, $no_block, $trans_date, $nb_due_date);
-    my $fields;
+    my ($patron_id, $patron_pwd, $item_id, $title_id, $item_props, $fee_ack);
+    my $fields = $self->{fields};
+    my $status;
+    my ($patron, $item);
+    my $resp = RENEW_RESP;
 
     ($third_party, $no_block, $trans_date, $nb_due_date) =
 	@{$self->{fixed_fields}};
 
-    printf("handle_renew:\n");
-    printf("    3d party   : %c\n", $third_party);
-    printf("    no_block   : %c\n", $no_block);
-    printf("    trans date : %s\n", $trans_date);
-    printf("    nb_due_date: %s\n", $nb_due_date);
+    $ils->check_inst_id($fields->{(FID_INST_ID)}, "handle_renew");
 
-    $fields = $self->{fields};
-    foreach my $key (keys(%$fields)) {
-	printf("    $key        : %s\n",
-	       defined($fields->{$key}) ? $fields->{$key} : 'UNDEF' );
+    if ($no_block eq 'Y') {
+	syslog("WARNING",
+	       "handle_renew: recieved 'no block' renewal from terminal '%s'",
+	       $server->{account}->{id});
     }
 
+    $patron_id = $fields->{(FID_PATRON_ID)};
+    $patron_pwd = $fields->{(FID_PATRON_PWD)};
+    $item_id = $fields->{(FID_ITEM_ID)};
+    $title_id = $fields->{(FID_TITLE_ID)};
+    $item_props = $fields->{(FID_ITEM_PROPS)};
+    $fee_ack = $fields->{(FID_FEE_ACK)};
+
+    $status = $ils->renew($patron_id, $patron_pwd, $item_id, $title_id,
+			  $no_block, $nb_due_date, $third_party,
+			  $item_props, $fee_ack);
+
+    $patron = $status->patron;
+    $item = $status->item;
+
+    if ($status->ok) {
+	$resp .= '1';
+	$resp .= $status->renewal_ok ? 'Y' : 'N';
+	if ($ils->supports('magnetic media')) {
+	    $resp .= sipbool($item->magnetic);
+	} else {
+	    $resp .= 'U';
+	}
+	$resp .= sipbool($status->desensitize);
+	$resp .= Sip::timestamp;
+	$resp .= add_field(FID_PATRON_ID, $patron->id);
+	$resp .= add_field(FID_ITEM_ID, $item->id);
+	$resp .= add_field(FID_TITLE_ID, $item->title_id);
+	$resp .= add_field(FID_DUE_DATE, Sip::timestamp($item->due_date));
+	if ($ils->supports('security inhibit')) {
+	    $resp .= add_field(FID_SECURITY_INHIBIT,
+			       $status->security_inhibit);
+	}
+	$resp .= add_field(FID_MEDIA_TYPE, $item->sip_media_type);
+	$resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
+    } else {
+	# renew failed for some reason
+	# not OK, renewal not OK, Unknown media type (why bother checking?)
+	$resp .= '0NU';
+	$resp .= Sip::timestamp;
+	$resp .= add_field(FID_PATRON_ID, $patron_id);
+	$resp .= add_field(FID_ITEM_ID, $item_id);
+	$resp .= add_field(FID_TITLE_ID, $title_id);
+	$resp .= add_field(FID_DUE_DATE, Sip::timestamp($item->due_date));
+    }
+
+    if ($status->fee_amount) {
+	$resp .= add_field(FID_FEE_AMT, $status->fee_amount);
+	$resp .= maybe_add(FID_CURRENCY, $status->sip_currency);
+	$resp .= maybe_add(FID_FEE_TYPE, $status->sip_fee_type);
+	$resp .= maybe_add(FID_TRANSACTION_ID, $status->transaction_id);
+    }
+
+    $resp .= add_field(FID_INST_ID, $ils->institution);
+    $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
+    $resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
+
+    $self->write_msg($resp, $server);
+
+    return(RENEW);
 }
 
 sub handle_renew_all {
