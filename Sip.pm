@@ -17,14 +17,14 @@ use Sip::Checksum qw(checksum);
 
 our @ISA = qw(Exporter);
 
-our @EXPORT_OK = qw(y_or_n timestamp add_field maybe_add denied sipbool
-		    boolspace write_msg
+our @EXPORT_OK = qw(y_or_n timestamp add_field maybe_add add_count
+		    denied sipbool boolspace write_msg
 		    $error_detection $protocol_version $field_delimiter
 		    $last_response);
 
 our %EXPORT_TAGS = (
 		    all => [qw(y_or_n timestamp add_field maybe_add
-			       denied sipbool boolspace write_msg
+			       add_count denied sipbool boolspace write_msg
 			       $error_detection $protocol_version
 			       $field_delimiter $last_response)]);
 
@@ -69,6 +69,29 @@ sub maybe_add {
     my ($fid, $value) = @_;
 
     return (defined($value) && $value) ? add_field($fid, $value) : '';
+}
+
+# 
+# add_count()  produce fixed four-character count field,
+# or a string of four spaces if the count is invalid for some
+# reason
+# 
+sub add_count {
+    my ($label, $count) = @_;
+
+    # If the field is unsupported, it will be undef, return blanks
+    # as per the spec.
+    if (!defined($count)) {
+	return ' ' x 4;
+    }
+
+    $count = sprintf("%04d", $count);
+    if (length($count) != 4) {
+	syslog("WARNING", "handle_patron_info: %s wrong size: '%s'",
+	       $label, $count);
+	$count = ' ' x 4;
+    }
+    return $count;
 }
 
 #
