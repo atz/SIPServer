@@ -1,21 +1,17 @@
-#
-# status of a Hold transaction
+# 
+# RenewAll: class to manage status of "Renew All" transaction
 
-package ILS::Transaction::Hold;
+package ILS::Transaction::RenewAll;
 
-use warnings;
 use strict;
-
-use ILS;
-use ILS::Transaction;
+use warnings;
 
 our @ISA = qw(ILS::Transaction);
 
 my %fields = (
-	      expiration_date => 0,
-	      pickup_location => undef,
+	      renewed => [],
+	      unrenewed => [],
 	      );
-
 sub new {
     my $class = shift;;
     my $self = $class->SUPER::new();
@@ -28,12 +24,6 @@ sub new {
     @{$self}{keys %fields} = values %fields;
 
     return bless $self, $class;
-}
-
-sub queue_position {
-    my $self = shift;
-
-    return $self->item->hold_queue_position($self->patron->id);
 }
 
 1;

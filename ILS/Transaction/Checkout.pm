@@ -4,7 +4,6 @@
 
 package ILS::Transaction::Checkout;
 
-use Exporter;
 use warnings;
 use strict;
 
@@ -13,28 +12,27 @@ use POSIX qw(strftime);
 use ILS;
 use ILS::Transaction;
 
-our @ISA = qw(Exporter ILS::Transaction);
+our @ISA = qw(ILS::Transaction);
 
 # Most fields are handled by the Transaction superclass
+my %fields = (
+	      security_inhibit => 0,
+	      due              => undef,
+	      );
 
 sub new {
-    my ($class, $obj) = @_;
-    my $type = ref($class) || $class;
+    my $class = shift;;
+    my $self = $class->SUPER::new();
+    my $element;
 
-    $obj = {};
+    foreach $element (keys %fields) {
+	$self->{_permitted}->{$element} = $fields{$element};
+    }
 
-    $obj->{'due'} = time() + (60*60*24*14); # two weeks hence
-
-    return bless $obj, $type;
-}
-
-sub security_inhibit {
-    return 0;
-}
-
-sub due_date {
-    my $self = shift;
-    return(strftime("%F %H:%M:%S", localtime($self->{due})));
+    @{$self}{keys %fields} = values %fields;
+    $self->{'due'} = time() + (60*60*24*14); # two weeks hence
+    
+    return bless $self, $class;
 }
 
 sub renew_ok {
@@ -44,4 +42,5 @@ sub renew_ok {
 
     return ($item->{patron} eq $patron->{id});
 }
+
 1;

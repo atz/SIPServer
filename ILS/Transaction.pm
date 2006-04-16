@@ -4,97 +4,56 @@
 
 package ILS::Transaction;
 
-use Exporter;
+use Carp;
 use strict;
 use warnings;
 
-our @ISA = qw(Exporter);
+my %fields = (
+	      ok            => 0,
+	      patron        => undef,
+	      item          => undef,
+	      desensitize   => 0,
+	      alert         => '',
+	      transation_id => undef,
+	      sip_fee_type  => '01', # Other/Unknown
+	      fee_amount    => undef,
+	      sip_currency  => 'CAD',
+	      screen_msg    => '',
+	      print_line    => '',
+	      );
+
+our $AUTOLOAD;
 
 sub new {
-    my ($class, $obj) = @_;
-    my $type = ref($class) || $class;
+    my $class = shift;
+    my $self = {
+	_permitted => \%fields,
+	%fields,
+    };
 
-    return bless {}, $type;
+    return bless $self, $class;
 }
 
-sub ok {
+sub DESTROY {
+    # be cool
+}
+
+sub AUTOLOAD {
     my $self = shift;
+    my $class = ref($self) or croak "$self is not an object";
+    my $name = $AUTOLOAD;
 
-    return $self->{ok} ? 1 : 0;	# normalize, just because
-}
+    $name =~ s/.*://;
 
-sub alert {
-    my $self = shift;
+    unless (exists $self->{_permitted}->{$name}) {
+	croak "Can't access '$name' field of class '$class'";
+    }
 
-    return $self->{alert} || 0;
-}
-
-sub screen_msg {
-    my $self = shift;
-
-    return ($self->{screen_msg} || "");
-}
-
-sub print_line {
-    my $self = shift;
-
-    return ($self->{print_line} || "");
-}
-
-sub patron {
-    my $self = shift;
-
-    return $self->{patron};
-}
-
-sub item {
-    my $self = shift;
-
-    return $self->{item};
-}
-
-sub permanent_location {
-    my $self = shift;
-
-    return $self->item->permanent_location || '';
-}
-
-sub sort_bin {
-    my $self = shift;
-
-    return $self->{sort_bin} || '';
-}
-
-sub fee_amount {
-    return 0;
-}
-
-sub transaction_id {
-    my $self = shift;
-
-    return $self->{transaction_id};
-}
-
-sub sip_currency {
-    return 'CAD';		# ;-)
-}
-
-sub sip_fee_type {
-    my $self = shift;
-
-    return $self->{sip_fee_type} || '01'; # "Other/Unknown"
-}
-
-sub available {
-    my $self = shift;
-
-    return $self->{available} || 'N'; # Assume that it's not available
-}
-
-sub desensitize {
-    my $self = shift;
-
-    return $self->{desensitize};
+    if (@_) {
+	return $self->{$name} = shift;
+    } else {
+	return $self->{$name};
+    }
 }
 
 1;

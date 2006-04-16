@@ -12,12 +12,22 @@ use ILS::Transaction;
 
 our @ISA = qw(ILS::Transaction);
 
-# most fields are handled by the Transaction superclass
+my %fields = (
+	      renewal_ok => 0,
+	      );
 
-sub renewal_ok {
-    my $self = shift;
+sub new {
+    my $class = shift;;
+    my $self = $class->SUPER::new();
+    my $element;
 
-    return $self->{renewal_ok} || 0;
+    foreach $element (keys %fields) {
+	$self->{_permitted}->{$element} = $fields{$element};
+    }
+
+    @{$self}{keys %fields} = values %fields;
+
+    return bless $self, $class;
 }
 
 1;

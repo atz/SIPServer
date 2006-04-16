@@ -4,7 +4,6 @@
 
 package ILS::Transaction::Checkin;
 
-use Exporter;
 use warnings;
 use strict;
 
@@ -13,28 +12,31 @@ use POSIX qw(strftime);
 use ILS;
 use ILS::Transaction;
 
-our @ISA = qw(Exporter ILS::Transaction);
+our @ISA = qw(ILS::Transaction);
+
+my %fields = (
+	      magnetic => 0,
+	      sort_bin => undef,
+	      );
 
 sub new {
-    my ($class, $obj) = @_;
-    my $type = ref($class) || $class;
-    my ($item, $patron);
+    my $class = shift;;
+    my $self = $class->SUPER::new();
+    my $element;
 
-    $obj = {};
+    foreach $element (keys %fields) {
+	$self->{_permitted}->{$element} = $fields{$element};
+    }
 
-    return bless $obj, $type;
+    @{$self}{keys %fields} = values %fields;
+
+    return bless $self, $class;
 }
 
 sub resensitize {
     my $self = shift;
 
     return !$self->{item}->magnetic;
-}
-
-sub magnetic_media {
-    my $self = shift;
-
-    return $self->{item}->magnetic;
 }
 
 1;
