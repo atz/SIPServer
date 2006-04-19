@@ -235,16 +235,7 @@ sub cancel_hold {
     }
 
     # Remove the hold from the patron's record first
-    foreach my $i (0 .. scalar @{$patron->{hold_items}}-1) {
-	$hold = $patron->{hold_items}[$i];
-
-	if ($hold->{item_id} eq $item_id) {
-	    # found it: now delete it
-	    splice @{$patron->{hold_items}}, $i, 1;
-	    $trans->ok(1);
-	    last;
-	}
-    }
+    $trans->ok($patron->drop_hold($item_id));
 
     if (!$trans->ok) {
 	# We didn't find it on the patron record

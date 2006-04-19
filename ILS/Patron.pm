@@ -265,10 +265,22 @@ sub hold_items {
     return map $_->{item_id}, @{$self->{hold_items}}[$start-1 .. $end-1];
 }
 
-sub hold_items_count {
-    my $self = shift;
+#
+# remove the hold on item item_id from my hold queue.
+# return true if I was holding the item, false otherwise.
+# 
+sub drop_hold {
+    my ($self, $item_id) = @_;
+    my $i;
 
-    return scalar @{$self->{hold_items}};
+    for ($i = 0; $i < scalar @{$self->{hold_items}}; $i += 1) {
+	if ($self->{hold_items}[$i]->{item_id} eq $item_id) {
+	    splice @{$self->{hold_items}}, $i, 1;
+	    return 1;
+	}
+    }
+
+    return 0;
 }
 
 sub overdue_items {

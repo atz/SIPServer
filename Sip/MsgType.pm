@@ -905,7 +905,7 @@ sub handle_patron_info {
 	$resp .= $lang . Sip::timestamp();
 
 	$resp .= add_count('patron_info/hold_items',
-			   $patron->hold_items_count);
+			   scalar $patron->hold_items);
 	$resp .= add_count('patron_info/overdue_items',
 			   $patron->overdue_items_count);
 	$resp .= add_count('patron_info/charged_items',
