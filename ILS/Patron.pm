@@ -28,11 +28,11 @@ our %patron_db = (
 		      address => '2 Meadowvale Dr. St Thomas, ON',
 		      home_phone => '(519) 555 1234',
 		      email_addr => 'djfiander@hotmail.com',
-		      charge_ok => 'Y',
-		      renew_ok => 'Y',
-		      recall_ok => 'N',
-		      hold_ok => 'Y',
-		      card_lost => 'N',
+		      charge_ok => 1,
+		      renew_ok => 1,
+		      recall_ok => 0,
+		      hold_ok => 1,
+		      card_lost => 0,
 		      items_charged => 5,
 		      claims_returned => 0,
 		      fines => 100,
@@ -57,9 +57,14 @@ sub new {
     my $self;
 
     if (!exists($patron_db{$patron_id})) {
+	syslog("DEBUG", "new ILS::Patron(%s): no such patron", $patron_id);
 	return undef;
     }
+
     $self = $patron_db{$patron_id};
+
+    syslog("DEBUG", "new ILS::Patron(%s): found patron '%s'", $patron_id,
+	   $self->{id});
 
     bless $self, $type;
     return $self;
@@ -381,7 +386,7 @@ sub block {
     my ($self, $card_retained, $blocked_card_msg) = @_;
 
     foreach my $field ('charge_ok', 'renew_ok', 'recall_ok', 'hold_ok') {
-	$self->{$field} = 'N';
+	$self->{$field} = 0;
     }
 
     $self->{screen_msg} = $blocked_card_msg || "Card Blocked.  Please contact library staff";
@@ -393,7 +398,7 @@ sub enable {
     my $self = shift;
 
     foreach my $field ('charge_ok', 'renew_ok', 'recall_ok', 'hold_ok') {
-	$self->{$field} = 'Y';
+	$self->{$field} = 1;
     }
 
     syslog("DEBUG", "Patron(%s)->enable: charge: %s, renew:%s, recall:%s",

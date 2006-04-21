@@ -105,21 +105,13 @@ sub add_count {
 sub denied {
     my $bool = shift;
 
-    if (!$bool || ($bool eq 'N') || $bool eq 'False') {
-	return 'Y';
-    } else {
-	return ' ';
-    }
+    return boolspace(!$bool);
 }
 
 sub sipbool {
     my $bool = shift;
 
-    if (!$bool || ($bool =~/^false|n|no$/i)) {
-	return('N');
-    } else {
-	return('Y');
-    }
+    return $bool ? 'Y' : 'N';
 }
 
 #
@@ -128,24 +120,23 @@ sub sipbool {
 sub boolspace {
     my $bool = shift;
 
-    if (!$bool || ($bool eq 'N' || $bool eq 'False')) {
-	return ' ';
-    } else {
-	return 'Y';
-    }
+    return $bool ? 'Y' : ' ';
 }
 
 
 #
-# write_msg($msg, $server)
+# write_msg($msg, $file)
 #
 # Send $msg to the SC.  If error detection is active, then 
 # add the sequence number (if $seqno is non-zero) and checksum
 # to the message, and save the whole thing as $last_response
+# 
+# If $file is set, then it's a file handle: write to it, otherwise
+# just write to the default destination.
 #
 
 sub write_msg {
-    my ($self, $msg, $server) = @_;
+    my ($self, $msg, $file) = @_;
     my $cksum;
 
     if ($error_detection) {
@@ -159,7 +150,12 @@ sub write_msg {
 
     syslog("LOG_DEBUG", "OUTPUT MSG: '$msg'");
 
-    print "$msg\r";
+    if ($file) {
+	print $file "$msg\r";
+    } else {
+	print "$msg\r";
+    }
+
     $last_response = $msg;
 }
 
