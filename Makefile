@@ -12,3 +12,6 @@ run:
 
 tags:
 	find . -name '*.pm' -print | etags -
+
+test:
+	cd t; $(MAKE) test
