@@ -890,24 +890,13 @@ sub handle_patron_info {
     $patron = new ILS::Patron $patron_id;
 
     $resp = (PATRON_INFO_RESP);
-    if (!defined($patron) || !$patron->check_password($patron_pwd)) {
-	# Invalid patron ID, or password mismatch.  Either way
-	# we don't give back any status information.
-	# he has no privileges, no items associated with him,
-	# no personal name, and is invalid (if we're using 2.00)
-	$resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
-	$resp .= '0000' x 6;
-	$resp .= add_field(FID_PERSONAL_NAME, '');
-
-	# the patron ID is invalid, but it's a required field, so
-	# just echo it back
-	$resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
-
-	if ($protocol_version eq '2.00') {
-	    $resp .= add_field(FID_VALID_PATRON, 'N');
-	}
-    } else {
-	# Valid patron
+    # The patron password is an optional field in the Patron Information
+    # message.  To parallel the Patron Status situation, I am going to
+    # make the ASSUMPTION that I should provide complete patron information
+    # if the patron password is absent, or if it's present and matches.
+    # 
+    if ($patron
+	&& (!defined($patron_pwd) || $patron->check_password($patron_pwd))) {
 	$resp .= patron_status_string($patron);
 	$resp .= $lang . Sip::timestamp();
 
@@ -935,6 +924,22 @@ sub handle_patron_info {
 	$resp .= maybe_add(FID_HOME_PHONE, $patron->home_phone);
 
 	$resp .= summary_info($patron, $summary, $start, $end);
+    } else {
+	# Invalid patron ID, or password mismatch.  Either way
+	# we don't give back any status information.
+	# he has no privileges, no items associated with him,
+	# no personal name, and is invalid (if we're using 2.00)
+	$resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
+	$resp .= '0000' x 6;
+	$resp .= add_field(FID_PERSONAL_NAME, '');
+
+	# the patron ID is invalid, but it's a required field, so
+	# just echo it back
+	$resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
+
+	if ($protocol_version eq '2.00') {
+	    $resp .= add_field(FID_VALID_PATRON, 'N');
+	}
     }
 
     $resp .= add_field(FID_INST_ID, $server->{ils}->institution);
