@@ -265,7 +265,7 @@ sub hold_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->hold_items_count if !defined($end);
+    $end = scalar @{$self->{hold_items}} if !defined($end);
 
     return map $_->{item_id}, @{$self->{hold_items}}[$start-1 .. $end-1];
 }
