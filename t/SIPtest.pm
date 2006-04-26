@@ -7,9 +7,11 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
 		    $datepat $text_field
 		    $login_test $sc_status_test
-		    $print_line $screen_msg);
+		    %field_specs);
 use strict;
 use warnings;
+
+#use Data::Dumper;
 
 # The number of tests is set in run_sip_tests() below, based
 # on the size of the array of tests.
@@ -18,6 +20,7 @@ use Test::More;
 use IO::Socket::INET;
 use Sip qw(:all);
 use Sip::Checksum qw(verify_cksum);
+use Sip::Constants qw(:all);
 
 # Pattern for a SIP datestamp, to be used by individual tests to
 # match timestamp fields (duh).
@@ -26,14 +29,18 @@ our $datepat = '\d{8} {4}\d{6}';
 # Pattern for a random text field
 our $text_field = qr/^[^|]+$/;
 
-# field definitions for screen msg and print line
-our $screen_msg = { field    => 'AF',
-		    pat      => $text_field,
-		    required => 0, };
+our %field_specs = (
+		    (FID_SCREEN_MSG) => { field    => FID_SCREEN_MSG,
+					  pat      => $text_field,
+					  required => 0, },
+		    (FID_PRINT_LINE) => { field    => FID_PRINT_LINE,
+					  pat      => $text_field,
+					  required => 0, },
+		    (FID_INST_ID)    => { field    => 'AO',
+					  pat      => qr/^UWOLS$/,
+					  required => 1, },
 
-our $print_line = { field    => 'AG',
-		    pat      => $text_field,
-		    required => 0, };
+		    );
 
 # Login and SC Status are always the first two messages that
 # the terminal sends to the server, so just create the test
@@ -48,9 +55,9 @@ our $sc_status_test = { id => 'SC status',
 			msg => '9910302.00',
 			pat => qr/^98[YN]{6}\d{3}\d{3}$datepat(2\.00|1\.00)/,
 			fields => [
-				   { field    => 'AO',
-				     pat      => $text_field,
-				     required => 1, },
+				   $field_specs{(FID_SCREEN_MSG)},
+				   $field_specs{(FID_PRINT_LINE)},
+				   $field_specs{(FID_INST_ID)},
 				   { field    => 'AM',
 				     pat      => $text_field,
 				     required => 0, },
@@ -60,8 +67,6 @@ our $sc_status_test = { id => 'SC status',
 				   { field    => 'AN',
 				     pat      => $text_field,
 				     required => 0, },
-				   $print_line,
-				   $screen_msg,
 				   ],
 			};
 
@@ -76,16 +81,12 @@ sub one_msg {
     ok(verify_cksum($resp), "checksum $test->{id}");
     like($resp, $test->{pat}, "match leader $test->{id}");
 
-    # I'm assuming that even if the leader test fails, that the
-    # leader is the correct length, so I can strip that off.
+    # Split the tagged fields of the response into (name, value)
+    # pairs and stuff them into the hash.
     $resp =~ $test->{pat};
-    $resp = substr($resp, $+[0]);
+    %fields = substr($resp, $+[0]) =~ /(..)([^|]*)\|/go;
 
-    # split the $resp into (field name, field value, '') triples
-    # then use grep to throw out the empty pattern matches, then
-    # assign the name/value pairs into the hash.
-    %fields = $resp =~ /(..)([^|]+)\|/go;
-
+#    print STDERR Dumper(\%fields);
     if (!defined($test->{fields})) {
       TODO: {
 	  local $TODO = "$test->{id} field tests not written yet";
@@ -98,16 +99,16 @@ sub one_msg {
 	foreach my $ftest (@{$test->{fields}}) {
 	    if ($ftest->{required}) {
 		ok(exists($fields{$ftest->{field}}),
-		   "$test->{id} required field '$ftest->{field}' exists");
+		   "$test->{id} required field '$ftest->{field}' exists in '$resp'");
 	    }
 
 	    if (exists($fields{$ftest->{field}})) {
 		like($fields{$ftest->{field}}, $ftest->{pat},
-		     "$test->{id} field test $ftest->{field}");
+		     "$test->{id} field test $ftest->{field} matches in '$resp'");
 	    } else {
 		# Don't skip the test, because there's nothing to test
 		# but we need to get the number of tests right.
-		ok(1, "$test->{id} field test $ftest->{field} undefined");
+		ok(1, "$test->{id} field test $ftest->{field} not received in '$resp'");
 	    }
 	}
     }

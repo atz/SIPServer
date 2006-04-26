@@ -5,6 +5,7 @@
 use strict;
 use warnings;
 
+use Sip::Constants qw(:all);
 use SIPtest qw($datepat);
 
 my @tests = (
@@ -14,6 +15,9 @@ my @tests = (
 	       msg => '2300120060101    084237AOUWOLS|AAdjfiander|AD6789|AC|',
 	       pat => qr/^24 [ Y]{13}\d{3}$datepat/,
 	       fields => [
+			  $SIPtest::field_specs{(FID_INST_ID)},
+			  $SIPtest::field_specs{(FID_SCREEN_MSG)},
+			  $SIPtest::field_specs{(FID_PRINT_LINE)},
 			  { field    => 'AE',
 			    pat      => qr/^David J\. Fiander$/,
 			    required => 1, },
@@ -26,26 +30,41 @@ my @tests = (
 			  { field    => 'CQ',
 			    pat      => qr/^Y$/,
 			    required => 0, },
-			  { field    => 'AO',
-			    pat      => qr/^UWOLS$/,
-			    required => 1, },
 			  { field    => 'BH',
 			    pat      => qr/^.{3}$/,
 			    required => 0, },
 			  { field    => 'BV',
 			    pat      => qr/^[0-9.]+$/,
 			    required => 0, },
-			  $SIPtest::screen_msg,
-			  $SIPtest::print_line,
 			  ], },
 	     { id => 'invalid password Patron Status',
 	       msg => '2300120060101    084237AOUWOLS|AAdjfiander|AC|',
 	       pat => qr/^24Y[ Y]{13}\d{3}$datepat/,
-	       fields => undef, },
+	       fields => [
+			  { field    => 'AE',
+			    pat      => qr/^$/,
+			    required => 1, },
+			  { field    => 'AA',
+			    pat      => qr/^djfiander$/,
+			    required => 1, },
+			  { field    => 'AO',
+			    pat      => qr/^UWOLS$/,
+			    required => 1, },
+			  ], },
 	     { id => 'invalid Patron Status',
 	       msg => '2300120060101    084237AOUWOLS|AAwshakespeare|AC|',
 	       pat => qr/^24Y[ Y]{13}\d{3}$datepat/,
-	       fields => undef, },
+	       fields => [
+			  { field    => 'AE',
+			    pat      => qr/^$/,
+			    required => 1, },
+			  { field    => 'AA',
+			    pat      => qr/^wshakespeare$/,
+			    required => 1, },
+			  { field    => 'AO',
+			    pat      => qr/^UWOLS$/,
+			    required => 1, },
+			  ], },
 	     );
 
 SIPtest::run_sip_tests(@tests);
