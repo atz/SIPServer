@@ -427,12 +427,21 @@ sub handle {
 # Patron status messages are produced in response to both
 # "Request Patron Status" and "Block Patron"
 #
+# Request Patron Status requires a patron password, but
+# Block Patron doesn't (since the patron may never have
+# provided one before attempting some illegal action).
+# 
+# ASSUMPTION: If the patron password field is present in the
+# message, then it must match, otherwise incomplete patron status
+# information will be returned to the terminal.
+# 
 sub build_patron_status {
     my ($patron, $lang, $fields)= @_;
     my $resp = (PATRON_STATUS_RESP);
 
-    if ($patron && $patron->check_password($fields->{(FID_PATRON_PWD)})) {
-	# Valid patron/password
+    if ($patron
+	&& (!exists($fields->{(FID_PATRON_PWD)})
+	    || $patron->check_password($fields->{(FID_PATRON_PWD)}))) {
 	$resp .= patron_status_string($patron);
 	$resp .= $lang . Sip::timestamp();
 	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
@@ -442,11 +451,11 @@ sub build_patron_status {
 	$resp .= FID_PATRON_ID . $patron->id . $field_delimiter;
 	if ($protocol_version eq '2.00') {
 	    $resp .= add_field(FID_VALID_PATRON, 'Y');
-	    # If the patron password field doesn't exist, we don't know if
-	    # it's valid or not.  Or do we have to match an empty password?
+	    # If the patron password field doesn't exist, then
+	    # we can't report that the password was valid, now can
+	    # we?  But if it does exist, then we know it's valid.
 	    if (exists($fields->{(FID_PATRON_PWD)})) {
-		$resp .= add_field(FID_VALID_PATRON_PWD,
-				   sipbool($patron->check_password($fields->{(FID_PATRON_PWD)})));
+		$resp .= add_field(FID_VALID_PATRON_PWD, sipbool(1));
 	    }
 	    $resp .= maybe_add(FID_CURRENCY, $patron->currency);
 	    $resp .= maybe_add(FID_FEE_AMT, $patron->fee_amount);
@@ -454,7 +463,8 @@ sub build_patron_status {
 	$resp .= maybe_add(FID_SCREEN_MSG, $patron->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $patron->print_line);
     } else {
-	# Invalid patron id: he has no privileges, has
+	# Invalid patron id, or patron password provided by the
+	# terminal is incorrect.  Report that the user has no privs.,
 	# no personal name, and is invalid (if we're using 2.00)
 	$resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
 	$resp .= add_field(FID_PERSONAL_NAME, '');
@@ -714,10 +724,6 @@ sub handle_block_patron {
 	$patron->block($card_retained, $blocked_card_msg);
     }
 
-    # We have to build a valid patron status message, even if we
-    # didn't get a password from the patron, because the TERMINAL
-    # decided to block the user
-    $fields->{(FID_PATRON_PWD)} = $patron->password;
     $resp = build_patron_status($patron, '000', $fields);
 
     $self->write_msg($resp);
