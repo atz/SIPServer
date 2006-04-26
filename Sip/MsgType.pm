@@ -595,8 +595,9 @@ sub handle_checkout {
 	$resp .= add_field(FID_PATRON_ID, $patron_id);
 	$resp .= add_field(FID_ITEM_ID, $item_id);
 
-	# We don't know the title, but it's required, so leave it blank
-	$resp .= add_field(FID_TITLE_ID, '');
+	# If the item is valid, provide the title, otherwise
+	# leave it blank
+	$resp .= add_field(FID_TITLE_ID, $item ? $item->title_id : '');
 	# Due date is required.  Since it didn't get checked out,
 	# it's not due, so leave the date blank
 	$resp .= add_field(FID_DUE_DATE, '');
