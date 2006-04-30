@@ -304,6 +304,10 @@ use constant {
     FID_LOGIN_PWD              => 'CO',
     FID_LOCATION_CODE          => 'CP',
     FID_VALID_PATRON_PWD       => 'CQ',
+
+    # SIP Extensions used by Envisionware Terminals
+    FID_PATRON_BIRTHDATE       => 'PB',
+    FID_PATRON_CLASS           => 'PC',
 };
 
 # 

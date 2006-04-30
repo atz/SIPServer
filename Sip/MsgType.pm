@@ -924,6 +924,13 @@ sub handle_patron_info {
 	$resp .= maybe_add(FID_HOME_PHONE, $patron->home_phone);
 
 	$resp .= summary_info($patron, $summary, $start, $end);
+
+	# SIP 2.0 extensions used by Envisionware
+	# Other types of terminals will ignore the fields, if
+	# they don't recognize the codes
+	$resp .= maybe_add(FID_PATRON_BIRTHDATE, $patron->sip_birthdate);
+	$resp .= maybe_add(FID_PATRON_CLASS, $patron->ptype);
+
     } else {
 	# Invalid patron ID, or password mismatch.  Either way
 	# we don't give back any status information.
