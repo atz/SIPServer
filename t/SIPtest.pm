@@ -145,7 +145,7 @@ sub run_sip_tests {
     $Sip::error_detection = 1;
     $/ = "\r";
 
-    $sock = new IO::Socket::INET(PeerAddr => 'localhost:5300',
+    $sock = new IO::Socket::INET(PeerAddr => 'localhost:6001',
 				 Type     => SOCK_STREAM);
     BAIL_OUT('failed to create connection to server') unless $sock;
 
