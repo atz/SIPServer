@@ -925,6 +925,8 @@ sub handle_patron_info {
 
 	$resp .= summary_info($patron, $summary, $start, $end);
 
+	$resp .= add_field(FID_VALID_PATRON, 'Y');
+
 	# SIP 2.0 extensions used by Envisionware
 	# Other types of terminals will ignore the fields, if
 	# they don't recognize the codes
