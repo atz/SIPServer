@@ -25,6 +25,8 @@ our %patron_db = (
 		      name => "David J. Fiander",
 		      id => 'djfiander',
 		      password => '6789',
+		      ptype => 'A', # 'A'dult.  Whatever.
+		      sip_birthdate => '1964-09-25',
 		      address => '2 Meadowvale Dr. St Thomas, ON',
 		      home_phone => '(519) 555 1234',
 		      email_addr => 'djfiander@hotmail.com',
@@ -98,6 +100,18 @@ sub home_phone {
     my $self = shift;
 
     return $self->{home_phone};
+}
+
+sub sip_birthdate {
+    my $self = shift;
+
+    return $self->{birthdate};
+}
+
+sub ptype {
+    my $self = shift;
+
+    return $self->{ptype};
 }
 
 sub language {
