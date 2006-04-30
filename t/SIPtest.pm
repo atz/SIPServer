@@ -5,7 +5,7 @@ use Exporter;
 our @ISA = qw(Exporter);
 
 our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
-		    $datepat $text_field
+		    $datepat $textpat
 		    $login_test $sc_status_test
 		    %field_specs);
 use strict;
@@ -27,14 +27,14 @@ use Sip::Constants qw(:all);
 our $datepat = '\d{8} {4}\d{6}';
 
 # Pattern for a random text field
-our $text_field = qr/^[^|]+$/;
+our $textpat = qr/^[^|]+$/;
 
 our %field_specs = (
 		    (FID_SCREEN_MSG) => { field    => FID_SCREEN_MSG,
-					  pat      => $text_field,
+					  pat      => $textpat,
 					  required => 0, },
 		    (FID_PRINT_LINE) => { field    => FID_PRINT_LINE,
-					  pat      => $text_field,
+					  pat      => $textpat,
 					  required => 0, },
 		    (FID_INST_ID)    => { field    => FID_INST_ID,
 					  pat      => qr/^UWOLS$/,
@@ -76,13 +76,13 @@ our $sc_status_test = { id => 'SC status',
 				   $field_specs{(FID_PRINT_LINE)},
 				   $field_specs{(FID_INST_ID)},
 				   { field    => 'AM',
-				     pat      => $text_field,
+				     pat      => $textpat,
 				     required => 0, },
 				   { field    => 'BX',
 				     pat      => qr/^[YN]+$/,
 				     required => 1, },
 				   { field    => 'AN',
-				     pat      => $text_field,
+				     pat      => $textpat,
 				     required => 0, },
 				   ],
 			};
@@ -114,18 +114,20 @@ sub one_msg {
 	# If there are no tagged fields, then 'fields' should be an
 	# empty list which will automatically skip this loop
 	foreach my $ftest (@{$test->{fields}}) {
+	    my $field = $ftest->{field};
+
 	    if ($ftest->{required}) {
-		ok(exists($fields{$ftest->{field}}),
-		   "$test->{id} required field '$ftest->{field}' exists in '$resp'");
+		ok(exists($fields{$field}),
+		   "$test->{id} required field '$field' exists in '$resp'");
 	    }
 
-	    if (exists($fields{$ftest->{field}})) {
-		like($fields{$ftest->{field}}, $ftest->{pat},
-		     "$test->{id} field test $ftest->{field} matches in '$resp'");
+	    if (exists($fields{$field})) {
+		like($fields{$field}, $ftest->{pat},
+		     "$test->{id} field test $field matches in '$resp'");
 	    } else {
 		# Don't skip the test, because there's nothing to test
 		# but we need to get the number of tests right.
-		ok(1, "$test->{id} field test $ftest->{field} not received in '$resp'");
+		ok(1, "$test->{id} field test $field not received in '$resp'");
 	    }
 	}
     }
