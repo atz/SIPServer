@@ -437,25 +437,25 @@ sub handle {
 # 
 sub build_patron_status {
     my ($patron, $lang, $fields)= @_;
+    my $patron_pwd = $fields->{(FID_PATRON_PWD)};
     my $resp = (PATRON_STATUS_RESP);
 
-    if ($patron
-	&& (!exists($fields->{(FID_PATRON_PWD)})
-	    || $patron->check_password($fields->{(FID_PATRON_PWD)}))) {
+    if ($patron) {
 	$resp .= patron_status_string($patron);
 	$resp .= $lang . Sip::timestamp();
 	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
 
 	# while the patron ID we got from the SC is valid, let's
 	# use the one returned from the ILS, just in case...
-	$resp .= FID_PATRON_ID . $patron->id . $field_delimiter;
+	$resp .= add_field(FID_PATRON_ID, $patron->id);
 	if ($protocol_version eq '2.00') {
 	    $resp .= add_field(FID_VALID_PATRON, 'Y');
 	    # If the patron password field doesn't exist, then
 	    # we can't report that the password was valid, now can
 	    # we?  But if it does exist, then we know it's valid.
-	    if (exists($fields->{(FID_PATRON_PWD)})) {
-		$resp .= add_field(FID_VALID_PATRON_PWD, sipbool(1));
+	    if (defined($patron_pwd)) {
+		$resp .= add_field(FID_VALID_PATRON_PWD,
+				   sipbool($patron->check_password($patron_pwd)));
 	    }
 	    $resp .= maybe_add(FID_CURRENCY, $patron->currency);
 	    $resp .= maybe_add(FID_FEE_AMT, $patron->fee_amount);
@@ -463,8 +463,7 @@ sub build_patron_status {
 	$resp .= maybe_add(FID_SCREEN_MSG, $patron->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $patron->print_line);
     } else {
-	# Invalid patron id, or patron password provided by the
-	# terminal is incorrect.  Report that the user has no privs.,
+	# Invalid patron id.  Report that the user has no privs.,
 	# no personal name, and is invalid (if we're using 2.00)
 	$resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
 	$resp .= add_field(FID_PERSONAL_NAME, '');
@@ -890,13 +889,7 @@ sub handle_patron_info {
     $patron = new ILS::Patron $patron_id;
 
     $resp = (PATRON_INFO_RESP);
-    # The patron password is an optional field in the Patron Information
-    # message.  To parallel the Patron Status situation, I am going to
-    # make the ASSUMPTION that I should provide complete patron information
-    # if the patron password is absent, or if it's present and matches.
-    # 
-    if ($patron
-	&& (!defined($patron_pwd) || $patron->check_password($patron_pwd))) {
+    if ($patron) {
 	$resp .= patron_status_string($patron);
 	$resp .= $lang . Sip::timestamp();
 
@@ -926,6 +919,12 @@ sub handle_patron_info {
 	$resp .= summary_info($patron, $summary, $start, $end);
 
 	$resp .= add_field(FID_VALID_PATRON, 'Y');
+	if (defined($patron_pwd)) {
+	    # If the patron password was provided, report on if
+	    # it was right.
+	    $resp .= add_field(FID_VALID_PATRON_PWD,
+			       sipbool($patron->check_password($patron_pwd)));
+	}
 
 	# SIP 2.0 extensions used by Envisionware
 	# Other types of terminals will ignore the fields, if
@@ -934,9 +933,8 @@ sub handle_patron_info {
 	$resp .= maybe_add(FID_PATRON_CLASS, $patron->ptype);
 
     } else {
-	# Invalid patron ID, or password mismatch.  Either way
-	# we don't give back any status information.
-	# he has no privileges, no items associated with him,
+	# Invalid patron ID
+	# He has no privileges, no items associated with him,
 	# no personal name, and is invalid (if we're using 2.00)
 	$resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
 	$resp .= '0000' x 6;
