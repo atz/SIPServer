@@ -140,7 +140,7 @@ sub write_msg {
     my $cksum;
 
     if ($error_detection) {
-	if ($self->{seqno}) {
+	if (defined($self->{seqno})) {
 	    $msg .= 'AY' . $self->{seqno};
 	}
 	$msg .= 'AZ';
