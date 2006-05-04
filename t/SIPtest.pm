@@ -174,6 +174,7 @@ sub run_sip_tests {
 
     foreach my $test (@_) {
 	one_msg($sock, $test, $seqno++);
+	$seqno %= 10;		# sequence number is one digit
     }
 }
 
