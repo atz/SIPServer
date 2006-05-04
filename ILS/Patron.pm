@@ -26,7 +26,7 @@ our %patron_db = (
 		      id => 'djfiander',
 		      password => '6789',
 		      ptype => 'A', # 'A'dult.  Whatever.
-		      sip_birthdate => '1964-09-25',
+		      birthdate => '19640925',
 		      address => '2 Meadowvale Dr. St Thomas, ON',
 		      home_phone => '(519) 555 1234',
 		      email_addr => 'djfiander@hotmail.com',
@@ -35,7 +35,7 @@ our %patron_db = (
 		      recall_ok => 0,
 		      hold_ok => 1,
 		      card_lost => 0,
-		      items_charged => 5,
+		      items_charged => 0,
 		      claims_returned => 0,
 		      fines => 100,
 		      fees => 0,
@@ -46,10 +46,10 @@ our %patron_db = (
 		      items => [],
 		      hold_items => [],
 		      overdue_items => [],
-		      fine_items => [],
+		      fine_items => ['Computer Time'],
 		      recall_items => [],
 		      unavail_holds => [],
-		      fee_items => ['Computer Time'],
+		      fee_items => [],
 		  },
 		  );
 
