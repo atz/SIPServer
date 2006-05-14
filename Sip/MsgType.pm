@@ -1001,11 +1001,7 @@ sub handle_fee_paid {
     $fee_id = $fields->{(FID_FEE_ID)};
     $trans_id = $fields->{(FID_TRANSACTION_ID)};
 
-    if ($inst_id ne $server->{ils}->institution) {
-	syslog("LOG_WARNING", "handle_fee_paid: received inst id '%s' from terminal '%s', expected inst '%s'",
-	       $inst_id, $server->{account}->{id},
-	       $server->{ils}->institution);
-    }
+    $ils->check_inst_id($inst_id, "handle_fee_paid");
 
     $status = $ils->pay_fee($patron_id, $patron_pwd, $fee_amt, $fee_type,
 			   $pay_type, $fee_id, $trans_id, $currency);
@@ -1344,6 +1340,7 @@ sub handle_renew_all {
     my $fields = $self->{fields};
     my $resp = RENEW_ALL_RESP;
     my $status;
+    my (@renewed, @unrenewed);
 
     $ils->check_inst_id($fields->{(FID_INST_ID)}, "handle_renew_all");
 
@@ -1357,18 +1354,15 @@ sub handle_renew_all {
     $status = $ils->renew_all($patron_id, $patron_pwd, $fee_ack);
 
     $resp .= $status->ok ? '1' : '0';
-    $resp .= add_count("renew_all/renewed_count",
-		       scalar @{$status->renewed});
-    $resp .= add_count("renew_all/unrenewed_count",
-		       scalar @{$status->unrenewed});
+    @renewed = @{$status->renewed};
+    @unrenewed = @{$status->unrenewed};
+    $resp .= add_count("renew_all/renewed_count", scalar @renewed);
+    $resp .= add_count("renew_all/unrenewed_count", scalar @unrenewed);
     $resp .= Sip::timestamp;
     $resp .= add_field(FID_INST_ID, $ils->institution);
 
-    $resp .= join('', map(add_field(FID_RENEWED_ITEMS, $_),
-			  @{$status->renewed}));
-
-    $resp .= join('', map(add_field(FID_UNRENEWED_ITEMS, $_),
-			  @{$status->unrenewed}));
+    $resp .= join('', map(add_field(FID_RENEWED_ITEMS, $_), @renewed));
+    $resp .= join('', map(add_field(FID_UNRENEWED_ITEMS, $_), @unrenewed));
 
     $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
     $resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
