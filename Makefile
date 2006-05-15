@@ -3,6 +3,13 @@
 # sorts of tasks
 #
 
+PODFLAGS = --htmlroot=. --podroot=.
+
+.SUFFIXES: .pod .html
+
+.pod.html:
+	pod2html $(PODFLAGS) --outfile=$@ --infile=$<
+
 all:
 	@echo Nothing to make.  The command '"make run"' will run the server.
 
@@ -10,8 +17,10 @@ all:
 run: 
 	perl SIPServer.pm SIPconfig.xml
 
+test:
+	cd t; $(MAKE) test
+
 tags:
 	find . -name '*.pm' -print | etags -
 
-test:
-	cd t; $(MAKE) test
+html: ILS.html ILS/Item.html ILS/Patron.html
