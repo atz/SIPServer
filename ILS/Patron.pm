@@ -186,12 +186,6 @@ sub items_billed {
     return $self->{items_billed};
 }
 
-sub password {
-    my $self = shift;
-
-    return $self->{password};
-}
-
 sub check_password {
     my ($self, $pwd) = @_;
 
