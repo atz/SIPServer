@@ -35,7 +35,6 @@ our %patron_db = (
 		      recall_ok => 0,
 		      hold_ok => 1,
 		      card_lost => 0,
-		      items_charged => 0,
 		      claims_returned => 0,
 		      fines => 100,
 		      fees => 0,
@@ -150,40 +149,10 @@ sub card_lost {
     return $self->{card_lost};
 }
 
-sub items_charged {
-    my $self = shift;
-
-    return scalar @{$self->{items}};
-}
-
-sub claims_returned {
-    my $self = shift;
-
-    return $self->{claims_returned};
-}
-
-sub fines {
-    my $self = shift;
-
-    return $self->{fines};
-}
-
-sub fees {
-    my $self = shift;
-
-    return $self->{fees};
-}
-
 sub recall_overdue {
     my $self = shift;
 
     return $self->{recall_overdue};
-}
-
-sub items_billed {
-    my $self = shift;
-
-    return $self->{items_billed};
 }
 
 sub check_password {
@@ -275,7 +244,7 @@ sub hold_items {
     $start = 1 if !defined($start);
     $end = scalar @{$self->{hold_items}} if !defined($end);
 
-    return map $_->{item_id}, @{$self->{hold_items}}[$start-1 .. $end-1];
+    return [@{$self->{hold_items}}[$start-1 .. $end-1]];
 }
 
 #
@@ -300,94 +269,58 @@ sub overdue_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->overdue_items_count if !defined($end);
+    $end = scalar @{$self->{overdue_items}} if !defined($end);
 
-    return @{$self->{overdue_items}}[$start-1 .. $end-1];
-}
-
-sub overdue_items_count {
-    my $self = shift;
-
-    return scalar @{$self->{overdue_items}};
+    return [@{$self->{overdue_items}}[$start-1 .. $end-1]];
 }
 
 sub charged_items {
     my ($self, $start, $end) = shift;
 
     $start = 1 if !defined($start);
-    $end = $self->charged_items_count if !defined($end);
+    $end = scalar @{$self->{items}} if !defined($end);
 
     syslog("LOG_DEBUG", "charged_items: start = %d, end = %d", $start, $end);
     syslog("LOG_DEBUG", "charged_items: items = (%s)",
 	   join(', ', @{$self->{items}}));
 
-    return @{$self->{items}}[$start-1 .. $end-1];
-}
-
-sub charged_items_count {
-    my $self = shift;
-
-    return scalar @{$self->{items}};
+	return [@{$self->{items}}[$start-1 .. $end-1]];
 }
 
 sub fine_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->fine_items_count if !defined($end);
+    $end = scalar @{$self->{fine_items}} if !defined($end);
 
-    return @{$self->{fine_items}}[$start-1 .. $end-1];
-}
-
-sub fine_items_count {
-    my $self = shift;
-
-    return scalar @{$self->{fine_items}};
+    return [@{$self->{fine_items}}[$start-1 .. $end-1]];
 }
 
 sub recall_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->recall_items_count if !defined($end);
+    $end = scalar @{$self->{recall_items}} if !defined($end);
 
-    return @{$self->{recall_items}}[$start-1 .. $end-1];
-}
-
-sub recall_items_count {
-    my $self = shift;
-
-    return scalar @{$self->{recall_items}};
+    return [@{$self->{recall_items}}[$start-1 .. $end-1]];
 }
 
 sub unavail_holds {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->unavail_holds_count if !defined($end);
+    $end = scalar @{$self->{unavail_holds}} if !defined($end);
 
-    return @{$self->{unavail_holds}}[$start-1 .. $end-1];
-}
-
-sub unavail_holds_count {
-    my $self = shift;
-
-    return scalar @{$self->{unavail_holds}};
+    return [@{$self->{unavail_holds}}[$start-1 .. $end-1]];
 }
 
 sub fee_items {
     my ($self, $start, $end) = @_;
 
     $start = 1 if !defined($start);
-    $end = $self->fee_items_count if !defined($end);
+    $end = scalar @{$self->fee_items} if !defined($end);
 
     return @{$self->{fee_items}}[$start-1 .. $end-1];
-}
-
-sub fee_items_count {
-    my $self = shift;
-
-    return scalar @{$self->{fee_items}};
 }
 
 sub block {

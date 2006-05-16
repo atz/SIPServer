@@ -894,17 +894,17 @@ sub handle_patron_info {
 	$resp .= $lang . Sip::timestamp();
 
 	$resp .= add_count('patron_info/hold_items',
-			   scalar $patron->hold_items);
+			   scalar @{$patron->hold_items});
 	$resp .= add_count('patron_info/overdue_items',
-			   $patron->overdue_items_count);
+			   scalar @{$patron->overdue_items});
 	$resp .= add_count('patron_info/charged_items',
-			   $patron->charged_items_count);
+			   scalar @{$patron->charged_items});
 	$resp .= add_count('patron_info/fine_items',
-			   $patron->fine_items_count);
+			   scalar @{$patron->fine_items});
 	$resp .= add_count('patron_info/recall_items',
-			   $patron->recall_items_count);
+			   scalar @{$patron->recall_items});
 	$resp .= add_count('patron_info/unavail_holds',
-			   $patron->unavail_holds_count);
+			   scalar @{$patron->unavail_holds});
 
 	# while the patron ID we got from the SC is valid, let's
 	# use the one returned from the ILS, just in case...
