@@ -48,7 +48,6 @@ our %patron_db = (
 		      fine_items => ['Computer Time'],
 		      recall_items => [],
 		      unavail_holds => [],
-		      fee_items => [],
 		  },
 		  );
 
@@ -312,15 +311,6 @@ sub unavail_holds {
     $end = scalar @{$self->{unavail_holds}} if !defined($end);
 
     return [@{$self->{unavail_holds}}[$start-1 .. $end-1]];
-}
-
-sub fee_items {
-    my ($self, $start, $end) = @_;
-
-    $start = 1 if !defined($start);
-    $end = scalar @{$self->fee_items} if !defined($end);
-
-    return @{$self->{fee_items}}[$start-1 .. $end-1];
 }
 
 sub block {
