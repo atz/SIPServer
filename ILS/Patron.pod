@@ -134,7 +134,7 @@ Returns C<true> if C<$patron>'s password is C<$password>.
 Returns the three character ISO 4217 currency code for the
 patron's preferred currency.
 
-=head1 CHECK PATRON PERMISSIONS 
+=head1 CHECKING PATRON PERMISSIONS 
 
 Most of the methods associated with Patrons are related to
 checking if they're authorized to perform various actions:
@@ -144,6 +144,7 @@ checking if they're authorized to perform various actions:
 	$bool = $patron-E<gt>recall_ok;
 	$bool = $patron-E<gt>hold_ok;
 	$bool = $patron-E<gt>card_lost;
+	$bool = $patron-E<gt>recall_overdue;
 	$bool = $patron-E<gt>too_many_charged;
 	$bool = $patron-E<gt>too_many_overdue;
 	$bool = $patron-E<gt>too_many_renewal;
@@ -153,34 +154,39 @@ checking if they're authorized to perform various actions:
 	$bool = $patron-E<gt>excessive_fees;
 	$bool = $patron-E<gt>too_many_billed;
 
+=head1 LISTS OF ITEMS ASSOCIATED WITH THE USER
+
+The C<$patron> object provides a set of methods to find out
+information about various sets that are associated with the
+user.  All these methods take two optional parameters: C<$start>
+and C<$end>, which define a subset of the list of items to be
+returned (C<1> is the first item in the list).  The following
+methods all return a reference to a list of C<$item_id>s:
+
+	$items = $patron-E<gt>hold_items($start, $end);
+	$items = $patron-E<gt>overdue_items($start, $end);
+	$items = $patron-E<gt>charged_items($start, $end);
+	$items = $patron-E<gt>recall_items($start, $end);
+	$items = $patron-E<gt>unavail_holds($start, $end);
+
+It is also possible to retrieve an itemized list of the fines
+outstanding.  This method returns a reference to an itemized list
+of fines:
+
+	$fines = $patron-E<gt>fine_items($start, $end);
+
 =head1 PATRON BORROWING ACTIVITY
-
-
-=head2 C<$num = $patron-E<gt>recall_overdue;>
-
 
 =head2 C<$num = $patron-E<gt>fee_amount;>
 
+The total amount of fees and fines owed by the patron.
 
 =head2 C<$bool = $patron-E<gt>drop_hold($item_id);>
 
+Drops the hold that C<$patron> has placed on the item
+C<$item_id>.  Returns C<false> if the patron did not have a hold
+on the item, C<true> otherwise.
 
-=head2 C<@holds = $patron-E<gt>hold_items($start, $end);>
-
-
-=head2 C<@items = $patron-E<gt>overdue_items($start, $end);>
-
-
-=head2 C<@items = $patron-E<gt>charged_items($start, $end);>
-
-
-=head2 C<@items = $patron-E<gt>fine_items($start, $end);>
-
-
-=head2 C<@items = $patron-E<gt>recall_items($start, $end);>
-
-
-=head2 C<@items = $patron-E<gt>unavail_holds($start, $end);>
 
 
 =head1 CHANGING A PATRON'S STATUS
@@ -198,3 +204,7 @@ updated to indicate that the patron's privileges have been
 blocked, or C<undef> if the patron ID is not valid.
 
 =head2 C<$patron-E<gt>enable;>
+
+Reenable the patron after she's been blocked.  This is a test
+function and will not normally be called by self-service
+terminals in production.
