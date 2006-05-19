@@ -18,6 +18,7 @@ our @ISA = qw(ILS::Transaction);
 my %fields = (
 	      security_inhibit => 0,
 	      due              => undef,
+	      renew_ok         => 0,
 	      );
 
 sub new {
@@ -33,14 +34,6 @@ sub new {
     $self->{'due'} = time() + (60*60*24*14); # two weeks hence
     
     return bless $self, $class;
-}
-
-sub renew_ok {
-    my $self = shift;
-    my $patron = $self->{patron};
-    my $item = $self->{item};
-
-    return ($item->{patron} eq $patron->{id});
 }
 
 1;
