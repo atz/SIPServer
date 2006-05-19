@@ -11,7 +11,7 @@ use SIPtest qw($datepat $textpat);
 
 # This is a template test case for the Patron Information
 # message handling.  Because of the large number of fields,
-# this template forms the bases for all of the different
+# this template forms the basis for all of the different
 # situations: valid patron no details, valid patron with each
 # individual detail requested, invalid patron, invalid patron
 # password, etc.
