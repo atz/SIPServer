@@ -95,7 +95,7 @@ sub checkout {
     if ($circ->ok) {
 	# If the item is already associated with this patron, then
 	# we're renewing it.
-	$circ->renew_ok($item->{patron} eq $patron_id);
+	$circ->renew_ok($item->{patron} && ($item->{patron} eq $patron_id));
 	$item->{patron} = $patron_id;
 	$item->{due_date} = time + (14*24*60*60); # two weeks
 	push(@{$patron->{items}}, $item_id);
