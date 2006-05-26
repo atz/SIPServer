@@ -724,7 +724,7 @@ sub handle_block_patron {
 	$patron->block($card_retained, $blocked_card_msg);
     }
 
-    $resp = build_patron_status($patron, '000', $fields);
+    $resp = build_patron_status($patron, $patron->language, $fields);
 
     $self->write_msg($resp);
     return(BLOCK_PATRON);
@@ -1151,8 +1151,8 @@ sub handle_patron_enable {
 
     $patron = new ILS::Patron $patron_id;
 
-    if (!defined($patron) || !$patron->check_password($patron_pwd)) {
-	# Invalid patron ID or password mismatch
+    if (!defined($patron)) {
+	# Invalid patron ID
 	$resp .= 'YYYY' . (' ' x 10) . '000' . Sip::timestamp();
 	$resp .= add_field(FID_PATRON_ID, $patron_id);
 	$resp .= add_field(FID_PERSONAL_NAME, '');
@@ -1160,13 +1160,19 @@ sub handle_patron_enable {
 	$resp .= add_field(FID_VALID_PATRON_PWD, 'N');
     } else {
 	# valid patron
-	$status = $patron->enable;
+	if (defined($patron_pwd) && !$patron->check_password($patron_pwd)) {
+	    # Don't enable the patron if there was an invalid password
+	    $status = $patron->enable;
+	}
 	$resp .= patron_status_string($patron);
 	$resp .= $patron->language . Sip::timestamp();
 
 	$resp .= add_field(FID_PATRON_ID, $patron->id);
 	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
-	$resp .= add_field(FID_VALID_PATRON_PWD, 'Y');
+	if (defined($patron_pwd)) {
+	    $resp .= add_field(FID_VALID_PATRON_PWD,
+			       sipbool($patron->check_password($patron_pwd)));
+	}
 	$resp .= add_field(FID_VALID_PATRON, 'Y');
 	$resp .= maybe_add(FID_SCREEN_MSG, $patron->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $patron->print_line);
