@@ -332,9 +332,9 @@ sub enable {
 	$self->{$field} = 1;
     }
 
-    syslog("DEBUG", "Patron(%s)->enable: charge: %s, renew:%s, recall:%s",
+    syslog("DEBUG", "Patron(%s)->enable: charge: %s, renew:%s, recall:%s, hold:%s",
 	   $self->{id}, $self->{charge_ok}, $self->{renew_ok},
-	   $self->{recall_ok});
+	   $self->{recall_ok}, $self->{hold_ok});
 
     $self->{screen_msg} = "All privileges restored.";
 
