@@ -1160,7 +1160,7 @@ sub handle_patron_enable {
 	$resp .= add_field(FID_VALID_PATRON_PWD, 'N');
     } else {
 	# valid patron
-	if (defined($patron_pwd) && !$patron->check_password($patron_pwd)) {
+	if (!defined($patron_pwd) || !$patron->check_password($patron_pwd)) {
 	    # Don't enable the patron if there was an invalid password
 	    $status = $patron->enable;
 	}
