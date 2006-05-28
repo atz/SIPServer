@@ -171,22 +171,20 @@ sub add_hold {
 
     # BEGIN TRANSACTION
     $patron = new ILS::Patron $patron_id;
-    if (!$patron) {
-	$trans->available('N');
-	$trans->screen_msg("Invalid Password.");
+    if (!$patron
+	|| (defined($patron_pwd) && !$patron->check_password($patron_pwd))) {
+	$trans->screen_msg("Invalid Patron.");
 
 	return $trans;
     }
 
     $item = new ILS::Item ($item_id || $title_id);
     if (!$item) {
-	$trans->available('N');
 	$trans->screen_msg("No such item.");
 
 	# END TRANSACTION (conditionally)
 	return $trans;
     } elsif ($item->fee && ($fee_ack ne 'Y')) {
-	$trans->available = 'N';
 	$trans->screen_msg = "Fee required to place hold.";
 
 	# END TRANSACTION (conditionally)
@@ -224,14 +222,18 @@ sub cancel_hold {
     # BEGIN TRANSACTION
     $patron = new ILS::Patron $patron_id;
     if (!$patron) {
-	$trans->screen_msg = "Invalid patron barcode.";
+	$trans->screen_msg("Invalid patron barcode.");
+
+	return $trans;
+    } elsif (defined($patron_pwd) && !$patron->check_password($patron_pwd)) {
+	$trans->screen_msg('Invalid patron password.');
 
 	return $trans;
     }
 
     $item = new ILS::Item ($item_id || $title_id);
     if (!$item) {
-	$trans->screen_msg = "No such item.";
+	$trans->screen_msg("No such item.");
 
 	# END TRANSACTION (conditionally)
 	return $trans;
@@ -242,7 +244,7 @@ sub cancel_hold {
 
     if (!$trans->ok) {
 	# We didn't find it on the patron record
-	$trans->screen_msg = "No such hold on patron record.";
+	$trans->screen_msg("No such hold on patron record.");
 
 	# END TRANSACTION (conditionally)
 	return $trans;
