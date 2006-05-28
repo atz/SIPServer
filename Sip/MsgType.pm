@@ -229,9 +229,9 @@ my %handlers = (
 			    template_len => 19,
 			    fields => [(FID_EXPIRATION), (FID_PICKUP_LOCN),
 				       (FID_HOLD_TYPE), (FID_INST_ID),
-				       (FID_PATRON_ID), (FID_ITEM_ID),
-				       (FID_TITLE_ID), (FID_TERMINAL_PWD),
-				       (FID_FEE_ACK)],
+				       (FID_PATRON_ID), (FID_PATRON_PWD),
+				       (FID_ITEM_ID), (FID_TITLE_ID),
+				       (FID_TERMINAL_PWD), (FID_FEE_ACK)],
 			}
 		    }
 		},
