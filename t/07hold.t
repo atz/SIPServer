@@ -35,13 +35,114 @@ my $hold_test_template = {
 	       { field    => FID_ITEM_ID,
 		 pat      => qr/^1565921879$/,
 		 required => 1, },
-    ],};
-    
+	       ],};
+
+my $hold_count_test_template0 = {
+    id => 'Confirm patron has 0 holds',
+    msg => '6300020060329    201700          AOUWOLS|AAdjfiander|',
+    pat => qr/^64 [ Y]{13}\d{3}${datepat}0000(\d{4}){5}/,
+};
+
+my $hold_count_test_template1 = {
+    id => 'Confirm patron has 1 hold',
+    msg => '6300020060329    201700          AOUWOLS|AAdjfiander|',
+    pat => qr/^64 [ Y]{13}\d{3}${datepat}0001(\d{4}){5}/,
+};
+
 my @tests = (
 	     $SIPtest::login_test,
 	     $SIPtest::sc_status_test,
-	     $hold_test_template,
+	     $hold_test_template, $hold_count_test_template1,
 	     );
+
+my $test;
+
+# Cancel hold: valid hold
+$test = clone($hold_test_template);
+$test->{id} = 'Cancel hold: valid hold';
+$test->{msg} =~ s/\+/-/;
+$test->{pat} = qr/^161[NY]$datepat/;
+delete $test->{fields};
+$test->{fields} = [
+		   $SIPtest::field_specs{(FID_INST_ID)},
+		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
+		   $SIPtest::field_specs{(FID_PRINT_LINE)},
+		   { field    => FID_PATRON_ID,
+		     pat      => qr/^djfiander$/,
+		     required => 1, },
+		   ];
+
+push @tests, $test, $hold_count_test_template0;
+
+# Cancel Hold: no hold on item
+# $test is already set up to cancel a hold, just change
+# the field tests
+$test = clone($test);
+$test->{id} = 'Cancel Hold: no hold on specified item';
+$test->{pat} = qr/^160N$datepat/;
+
+push @tests, $test, $hold_count_test_template0;
+
+# Place hold: valid patron, item, invalid patron pwd
+$test = clone($hold_test_template);
+$test->{id} = 'Place hold: invalid patron password';
+$test->{msg} .= FID_PATRON_PWD . 'bad password|';
+$test->{pat} = qr/^160N$datepat/;
+delete $test->{fields};
+$test->{fields} = [
+		   $SIPtest::field_specs{(FID_INST_ID)},
+		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
+		   $SIPtest::field_specs{(FID_PRINT_LINE)},
+		   { field    => FID_PATRON_ID,
+		     pat      => qr/^djfiander$/,
+		     required => 1, },
+		   ];
+
+push @tests, $test, $hold_count_test_template0;
+
+# Place hold: invalid patron
+$test = clone($hold_test_template);
+$test->{id} = 'Place hold: invalid patron';
+$test->{msg} =~ s/AAdjfiander\|/AAberick|/;
+$test->{pat} = qr/^160N$datepat/;
+delete $test->{fields};
+$test->{fields} = [
+		   $SIPtest::field_specs{(FID_INST_ID)},
+		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
+		   $SIPtest::field_specs{(FID_PRINT_LINE)},
+		   { field    => FID_PATRON_ID,
+		     pat      => qr/^berick$/,
+		     required => 1, },
+		   ];
+
+# There's no patron to check the number of holds against
+push @tests, $test;
+
+# Place hold: invalid item
+$test = clone($hold_test_template);
+$test->{id} = 'Place hold: invalid item';
+$test->{msg} =~ s/AB1565921879\|/ABnosuchitem|/;
+$test->{pat} = qr/^160N$datepat/;
+delete $test->{fields};
+$test->{fields} = [
+		   $SIPtest::field_specs{(FID_INST_ID)},
+		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
+		   $SIPtest::field_specs{(FID_PRINT_LINE)},
+		   { field    => FID_PATRON_ID,
+		     pat      => qr/^djfiander$/,
+		     required => 1, },
+		   { field    => FID_ITEM_ID,
+		     pat      => qr/^nosuchitem$/,
+		     required => 0, },
+		   ];
+
+push @tests, $test, $hold_count_test_template0;
+
+# Still need tests for:
+#     - valid patron not permitted to place holds
+#     - valid item, not allowed to hold item
+#     - multiple holds on item: correct queue position management
+#     - setting and verifying hold expiry dates (requires ILS support)
 
 SIPtest::run_sip_tests(@tests);
 
