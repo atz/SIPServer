@@ -672,7 +672,9 @@ sub handle_checkin {
 
     if ($protocol_version eq '2.00') {
 	$resp .= maybe_add(FID_SORT_BIN, $status->sort_bin);
-	$resp .= maybe_add(FID_PATRON_ID, $status->patron->id);
+	if ($status->patron) {
+	    $resp .= add_field(FID_PATRON_ID, $status->patron->id);
+	}
 	$resp .= maybe_add(FID_MEDIA_TYPE, $status->item->sip_media_type);
 	$resp .= maybe_add(FID_ITEM_PROPS, $status->item->sip_item_properties);
     }
