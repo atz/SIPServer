@@ -1317,12 +1317,13 @@ sub handle_renew {
     } else {
 	# renew failed for some reason
 	# not OK, renewal not OK, Unknown media type (why bother checking?)
-	$resp .= '0NU';
+	$resp .= '0NUN';
 	$resp .= Sip::timestamp;
 	$resp .= add_field(FID_PATRON_ID, $patron_id);
-	$resp .= add_field(FID_ITEM_ID, $item_id);
-	$resp .= add_field(FID_TITLE_ID, $title_id);
-	$resp .= add_field(FID_DUE_DATE, Sip::timestamp($item->due_date));
+	$resp .= add_field(FID_ITEM_ID, $item_id || '');
+	$resp .= add_field(FID_TITLE_ID, $title_id || '');
+	# Not checked out, no date to report
+	$resp .= add_field(FID_DUE_DATE, '');
     }
 
     if ($status->fee_amount) {
