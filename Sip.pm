@@ -148,12 +148,12 @@ sub write_msg {
 	$msg .= sprintf('%4X', $cksum);
     }
 
-    syslog("LOG_DEBUG", "OUTPUT MSG: '$msg'");
 
     if ($file) {
 	print $file "$msg\r";
     } else {
 	print "$msg\r";
+	syslog("LOG_DEBUG", "OUTPUT MSG: '$msg'");
     }
 
     $last_response = $msg;
