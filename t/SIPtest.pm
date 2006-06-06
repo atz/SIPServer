@@ -26,8 +26,8 @@ use Sip::Constants qw(:all);
 # match timestamp fields (duh).
 our $datepat = '\d{8} {4}\d{6}';
 
-# Pattern for a random text field
-our $textpat = qr/^[^|]+$/;
+# Pattern for a random text field (may be empty)
+our $textpat = qr/^[^|]*$/;
 
 our %field_specs = (
 		    (FID_SCREEN_MSG) => { field    => FID_SCREEN_MSG,
