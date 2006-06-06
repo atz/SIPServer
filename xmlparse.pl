@@ -20,8 +20,9 @@ my $parser = new XML::Simple( KeyAttr   => { login => '+id',
 			      ForceArray=> [ 'service',
 					     'login',
 					     'institution' ],
-			      ValueAttr =>  [ 'error-detect',
-					      'enabled' ] );
+			      ValueAttr =>  { 'error-detect' => 'enabled',
+					     'min_servers' => 'value',
+					     'max_servers' => 'value'} );
 
 my $ref = $parser->XMLin($ARGV[0]);
 

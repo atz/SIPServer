@@ -47,6 +47,14 @@ foreach my $svc (keys %{$config->{listeners}}) {
 push @parms, "log_file=Sys::Syslog", "syslog_ident=acs-server",
     "syslog_facility=" . LOG_SIP;
 
+#
+# Server Management
+#
+foreach my $server_parm ('min_servers', 'max_servers') {
+    if (defined($config->{$server_parm})) {
+	push @parms, "$server_parm=" . $config->{$server_parm};
+    }
+}
 
 print Dumper(@parms);
 

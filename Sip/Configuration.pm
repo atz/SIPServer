@@ -24,8 +24,9 @@ my $parser = new XML::Simple( KeyAttr   => { login => '+id',
 			      ForceArray=> [ 'service',
 					     'login',
 					     'institution' ],
-			      ValueAttr =>  [ 'error-detect',
-					      'enabled' ] );
+			      ValueAttr =>  { 'error-detect' => 'enabled',
+					     'min_servers' => 'value',
+					     'max_servers' => 'value'} );
 
 sub new {
     my ($class, $config_file) = @_;
