@@ -102,8 +102,10 @@ sub sip_circulation_status {
 
     if ($self->{patron}) {
 	return '04';
+    } elsif (scalar @{$self->{hold_queue}}) {
+	return '08';
     } else {
-	return '01';
+	return '03';
     }
 }
 
