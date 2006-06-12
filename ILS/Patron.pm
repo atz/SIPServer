@@ -57,13 +57,13 @@ sub new {
     my $self;
 
     if (!exists($patron_db{$patron_id})) {
-	syslog("DEBUG", "new ILS::Patron(%s): no such patron", $patron_id);
+	syslog("LOG_DEBUG", "new ILS::Patron(%s): no such patron", $patron_id);
 	return undef;
     }
 
     $self = $patron_db{$patron_id};
 
-    syslog("DEBUG", "new ILS::Patron(%s): found patron '%s'", $patron_id,
+    syslog("LOG_DEBUG", "new ILS::Patron(%s): found patron '%s'", $patron_id,
 	   $self->{id});
 
     bless $self, $type;
@@ -332,7 +332,7 @@ sub enable {
 	$self->{$field} = 1;
     }
 
-    syslog("DEBUG", "Patron(%s)->enable: charge: %s, renew:%s, recall:%s, hold:%s",
+    syslog("LOG_DEBUG", "Patron(%s)->enable: charge: %s, renew:%s, recall:%s, hold:%s",
 	   $self->{id}, $self->{charge_ok}, $self->{renew_ok},
 	   $self->{recall_ok}, $self->{hold_ok});
 

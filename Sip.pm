@@ -87,7 +87,7 @@ sub add_count {
 
     $count = sprintf("%04d", $count);
     if (length($count) != 4) {
-	syslog("WARNING", "handle_patron_info: %s wrong size: '%s'",
+	syslog("LOG_WARNING", "handle_patron_info: %s wrong size: '%s'",
 	       $label, $count);
 	$count = ' ' x 4;
     }

@@ -1104,7 +1104,7 @@ sub handle_item_status_update {
     $item_props = $fields->{(FID_ITEM_PROPS)};
 
     if (!defined($item_id)) {
-	syslog("WARNING",
+	syslog("LOG_WARNING",
 	       "handle_item_status: received message without Item ID field");
     } else {
 	$item = new ILS::Item $item_id;
@@ -1148,7 +1148,7 @@ sub handle_patron_enable {
     $patron_id = $fields->{(FID_PATRON_ID)};
     $patron_pwd = $fields->{(FID_PATRON_PWD)};
 
-    syslog("DEBUG", "handle_patron_enable: patron_id: '%s', patron_pwd: '%s'",
+    syslog("LOG_DEBUG", "handle_patron_enable: patron_id: '%s', patron_pwd: '%s'",
 	   $patron_id, $patron_pwd);
 
     $patron = new ILS::Patron $patron_id;
@@ -1224,7 +1224,7 @@ sub handle_hold {
 				   $expiry_date, $pickup_locn, $hold_type,
 				   $fee_ack);
     } else {
-	syslog("WARNING", "handle_hold: Unrecognized hold mode '%s' from terminal '%s'",
+	syslog("LOG_WARNING", "handle_hold: Unrecognized hold mode '%s' from terminal '%s'",
 	       $hold_mode, $server->{account}->{id});
 	$status = new ILS::Transaction::Hold;
 	$status->screen_msg("System error. Please contact library status");
@@ -1275,7 +1275,7 @@ sub handle_renew {
     $ils->check_inst_id($fields->{(FID_INST_ID)}, "handle_renew");
 
     if ($no_block eq 'Y') {
-	syslog("WARNING",
+	syslog("LOG_WARNING",
 	       "handle_renew: recieved 'no block' renewal from terminal '%s'",
 	       $server->{account}->{id});
     }
@@ -1455,7 +1455,7 @@ sub patron_status_string {
     my $patron = shift;
     my $patron_status;
 
-    syslog("DEBUG", "patron_status_string: %s charge_ok: %s", $patron->id,
+    syslog("LOG_DEBUG", "patron_status_string: %s charge_ok: %s", $patron->id,
 	   $patron->charge_ok);
     $patron_status = sprintf('%s%s%s%s%s%s%s%s%s%s%s%s%s%s',
 			     denied($patron->charge_ok),

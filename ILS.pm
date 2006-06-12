@@ -29,7 +29,7 @@ sub new {
     my $type = ref($class) || $class;
     my $self = {};
 
-    syslog("DEBUG", "new ILS '%s'", $institution->{id});
+    syslog("LOG_DEBUG", "new ILS '%s'", $institution->{id});
     $self->{institution} = $institution;
 
     return bless $self, $type;
@@ -51,7 +51,7 @@ sub check_inst_id {
     my ($self, $id, $whence) = @_;
 
     if ($id ne $self->{institution}->{id}) {
-	syslog("WARNING", "%s: received institution '%s', expected '%s'",
+	syslog("LOG_WARNING", "%s: received institution '%s', expected '%s'",
 	       $whence, $id, $self->{institution}->{id});
     }
 }
@@ -392,7 +392,7 @@ sub renew_all {
 	my $item = new ILS::Item $item_id;
 
 	if (!defined($item)) {
-	    syslog("WARNING",
+	    syslog("LOG_WARNING",
 		   "renew_all: Invalid item id associated with patron '%s'",
 		   $patron->id);
 	    next;

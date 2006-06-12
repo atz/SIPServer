@@ -31,14 +31,14 @@ sub new {
 
 
     if (!exists($item_db{$item_id})) {
-	syslog("DEBUG", "new ILS::Item('%s'): not found", $item_id);
+	syslog("LOG_DEBUG", "new ILS::Item('%s'): not found", $item_id);
 	return undef;
     }
 
     $self = $item_db{$item_id};
     bless $self, $type;
 
-    syslog("DEBUG", "new ILS::Item('%s'): found with title '%s'",
+    syslog("LOG_DEBUG", "new ILS::Item('%s'): found with title '%s'",
 	   $item_id, $self->{title});
 
     return $self;
