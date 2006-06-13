@@ -48,11 +48,14 @@ push @parms, "log_file=Sys::Syslog", "syslog_ident=acs-server",
     "syslog_facility=" . LOG_SIP;
 
 #
-# Server Management
+# Server Management: set parameters for the Net::Server::PreFork
+# module.  The module silently ignores parameters that it doesn't
+# recognize, and complains about invalid values for parameters
+# that it does.
 #
-foreach my $server_parm ('min_servers', 'max_servers') {
-    if (defined($config->{$server_parm})) {
-	push @parms, "$server_parm=" . $config->{$server_parm};
+if (defined($config->{'server-params'})) {
+    while (my ($key, $val) = each %{$config->{'server-params'}}) {
+	push @parms, $key . '=' . $val;
     }
 }
 

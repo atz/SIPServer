@@ -1,6 +1,12 @@
 <acsconfig xmlns="http://openncip.org/acs-config/1.0/">
 
   <error-detect enabled="true" />
+
+  <!-- Set Net::Server::PreFork runtime parameters -->
+<!--  <server-params
+           min_servers='1'
+           min_spare_servers='0' /> -->
+  
   
   <listeners>
     <service
