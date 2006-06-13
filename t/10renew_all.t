@@ -46,6 +46,7 @@ my @tests = (
 	     $enable_template,
 	     $checkout_template,
 	     $renew_all_test_template,
+	     $checkin_template,	# check the book in, when done testing
 	     );
 
 SIPtest::run_sip_tests(@tests);
