@@ -13,12 +13,14 @@ my $checkout_template = {
     id => 'Renew: prep: check out item',
     msg => '11YN20060329    203000                  AOUWOLS|AAdjfiander|AB1565921879|AC|',
     pat => qr/^121NNY$datepat/,
+    fields => [],
 };
 
 my $checkin_template = {
     id => 'Renew: prep: check in item',
     msg => '09N20060102    08423620060113    084235APUnder the bed|AOUWOLS|AB1565921879|ACterminal password|',
     pat => qr/^10YYNN$datepat/,
+    fields => [],
 };
 
 my $renew_test_template = {

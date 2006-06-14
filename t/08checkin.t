@@ -35,6 +35,7 @@ my $checkout_template = {
     id => 'Checkin: prep: check out item',
     msg => '11YN20060329    203000                  AOUWOLS|AAdjfiander|AB1565921879|AC|',
     pat => qr/^121NNY$datepat/,
+    fields => [],
 };
 
 my @tests = (
