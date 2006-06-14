@@ -24,7 +24,7 @@ my $hold_test_template = {
 		 pat      => $datepat,
 		 required => 0, },
 	       { field    => FID_QUEUE_POS,
-		 pat      => qr/^[0-9]$/,
+		 pat      => qr/^1$/,
 		 required => 1, },
 	       { field    => FID_PICKUP_LOCN,
 		 pat      => qr/^Taylor$/,
@@ -41,13 +41,16 @@ my $hold_count_test_template0 = {
     id => 'Confirm patron has 0 holds',
     msg => '6300020060329    201700          AOUWOLS|AAdjfiander|',
     pat => qr/^64 [ Y]{13}\d{3}${datepat}0000(\d{4}){5}/,
+    fields => [],
 };
 
 my $hold_count_test_template1 = {
     id => 'Confirm patron has 1 hold',
     msg => '6300020060329    201700          AOUWOLS|AAdjfiander|',
     pat => qr/^64 [ Y]{13}\d{3}${datepat}0001(\d{4}){5}/,
+    fields => [],
 };
+
 
 my @tests = (
 	     $SIPtest::login_test,
@@ -56,6 +59,23 @@ my @tests = (
 	     );
 
 my $test;
+
+# Hold Queue: second hold placed on item
+$test = clone($hold_test_template);
+$test->{id} = 'Place hold: second hold on item';
+$test->{msg} =~ s/djfiander/miker/;
+$test->{pat} = qr/^161N$datepat/;
+foreach my $i (0 .. (scalar @{$test->{fields}})-1) {
+    my $field =  $test->{fields}[$i];
+
+    if ($field->{field} eq FID_PATRON_ID) {
+	$field->{pat} = qr/^miker$/;
+    } elsif ($field->{field} eq FID_QUEUE_POS) {
+	$field->{pat} = qr/^2$/;
+    }
+}
+
+push @tests, $test;
 
 # Cancel hold: valid hold
 $test = clone($hold_test_template);
