@@ -57,6 +57,13 @@ my @tests = (
 
 my $test;
 
+# Renew: item checked out, identify by title
+$test = clone($renew_test_template);
+$test->{id} = 'Renew: identify item by title';
+$test->{msg} =~ s/AB1565921879\|/AJPerl 5 desktop reference|/;
+# Everything else should be the same
+push @tests, $test;
+
 # Renew: item not checked out.  Basically the same, except
 # for the leader test.
 $test = clone($renew_test_template);
@@ -73,7 +80,6 @@ push @tests, $checkin_template, $test;
 # Still need tests for
 #     - renewing invalid item
 #     - invalid patron id
-#     - renewing via title id
 #     - renewing a for-fee item
 #     - patrons that are not permitted to renew
 #     - renewing item with outstanding hold
