@@ -9,6 +9,20 @@ use Sip::Constants qw(:all);
 
 use SIPtest qw($datepat $textpat);
 
+my $patron_enable_template = {
+    id => 'Renew All: prep: enable patron permissions',
+    msg => '2520060102    084238AOUWOLS|AAdjfiander|',
+    pat => qr/^26 {4}[ Y]{10}000$datepat/,
+    fields => [],
+};
+
+my $patron_disable_template = {
+    id => 'Checkout: block patron (prep to test checkout denied)',
+    msg => "01N20060102    084238AOUWOLS|ALHe's a jerk|AAdjfiander|",
+    # response to block patron is a patron status message
+    pat => qr/^24Y{4}[ Y]{10}000$datepat/,
+    fields => [], };
+
 my $checkout_test_template = {
     id => 'Checkout: valid item, valid patron',
     msg => '11YN20060329    203000                  AOUWOLS|AAdjfiander|AB1565921879|AC|',
@@ -131,6 +145,25 @@ push @tests, $test;
 
 # Needed: tests for blocked patrons, patrons with excessive
 # fines/fees, magnetic media, charging fees to borrow items.
+
+# Blocked patron
+$test = clone($checkout_test_template);
+$test->{id} = 'Checkout: Blocked patron';
+$test->{pat} = qr/^120NUN$datepat/;
+delete $test->{fields};
+$test->{fields} = [
+		   $SIPtest::field_specs{(FID_INST_ID)},
+		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
+		   $SIPtest::field_specs{(FID_PRINT_LINE)},
+		   { field    => FID_PATRON_ID,
+		     pat      => qr/^djfiander$/,
+		     required => 1, },
+		   { field    => FID_VALID_PATRON,
+		     pat      => qr/^Y$/,
+		     required => 1, },
+		  ];
+
+push @tests, $patron_disable_template, $test, $patron_enable_template;
 
 SIPtest::run_sip_tests(@tests);
 
