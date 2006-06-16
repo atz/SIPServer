@@ -90,9 +90,19 @@ sub checkout {
     $circ->patron($patron = new ILS::Patron $patron_id);
     $circ->item($item = new ILS::Item $item_id);
 
-    $circ->ok($circ->patron && $circ->item);
-
-    if ($circ->ok) {
+    if (!$patron) {
+	$circ->screen_msg("Invalid Patron");
+    } elsif (!$patron->charge_ok) {
+	$circ->screen_msg("Patron Blocked");
+    } elsif (!$item) {
+	$circ->screen_msg("Invalid Item");
+    } elsif ($item->hold_queue && ($patron_id ne @{$item->hold_queue}[0])) {
+	$circ->screen_msg("Item on Hold for Another User");
+    } elsif ($item->{patron} && ($item->{patron} ne $patron_id)) {
+	# I can't deal with this right now
+	$circ->screen_msg("Item checked out to another patron");
+    } else {
+	$circ->ok(1);
 	# If the item is already associated with this patron, then
 	# we're renewing it.
 	$circ->renew_ok($item->{patron} && ($item->{patron} eq $patron_id));
