@@ -77,9 +77,35 @@ foreach my $field (@{$test->{fields}}) {
 
 push @tests, $checkin_template, $test;
 
+$test = clone($renew_test_template);
+$test->{id} = 'Renew: Invalid item';
+$test->{msg} =~ s/AB[^|]+/ABbad-item/;
+$test->{pat} = qr/^300NUN$datepat/;
+foreach my $field (@{$test->{fields}}) {
+    if ($field->{field} eq FID_TITLE_ID || $field->{field} eq FID_DUE_DATE) {
+	$field->{pat} = qr/^$/;
+    } elsif ($field->{field} eq FID_ITEM_ID) {
+	$field->{pat} = qr/^bad-item$/;
+    }
+}
+
+push @tests, $test;
+
+$test = clone($renew_test_template);
+$test->{id} = 'Renew: Invalid user';
+$test->{msg} =~ s/AAdjfiander/AAberick/;
+$test->{pat} = qr/^300NUN$datepat/;
+foreach my $field (@{$test->{fields}}) {
+    if ($field->{field} eq FID_TITLE_ID || $field->{field} eq FID_DUE_DATE) {
+	$field->{pat} = qr/^$/;
+    } elsif ($field->{field} eq FID_PATRON_ID) {
+	$field->{pat} = qr/^berick$/;
+    }
+}
+
+push @tests, $test;
+
 # Still need tests for
-#     - renewing invalid item
-#     - invalid patron id
 #     - renewing a for-fee item
 #     - patrons that are not permitted to renew
 #     - renewing item with outstanding hold
