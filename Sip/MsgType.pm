@@ -257,7 +257,8 @@ my %handlers = (
 			    template => "A18",
 			    template_len => 18,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
-				       (FID_TERMINAL_PWD), (FID_FEE_ACK)],
+				       (FID_PATRON_PWD), (FID_TERMINAL_PWD),
+				       (FID_FEE_ACK)],
 			}
 		    }
 		}
@@ -1363,10 +1364,19 @@ sub handle_renew_all {
     $status = $ils->renew_all($patron_id, $patron_pwd, $fee_ack);
 
     $resp .= $status->ok ? '1' : '0';
-    @renewed = @{$status->renewed};
-    @unrenewed = @{$status->unrenewed};
-    $resp .= add_count("renew_all/renewed_count", scalar @renewed);
-    $resp .= add_count("renew_all/unrenewed_count", scalar @unrenewed);
+
+    if (!$status->ok) {
+	$resp .= add_count("renew_all/renewed_count", 0);
+	$resp .= add_count("renew_all/unrenewed_count", 0);
+	@renewed = [];
+	@unrenewed = [];
+    } else {
+	@renewed = @{$status->renewed};
+	@unrenewed = @{$status->unrenewed};
+	$resp .= add_count("renew_all/renewed_count", scalar @renewed);
+	$resp .= add_count("renew_all/unrenewed_count", scalar @unrenewed);
+    }
+
     $resp .= Sip::timestamp;
     $resp .= add_field(FID_INST_ID, $ils->institution);
 
