@@ -52,6 +52,33 @@ my @tests = (
 	     $checkin_template,	# check the book in, when done testing
 	     );
 
+my $test;
+
+$test = clone($renew_all_test_template);
+$test->{id} = 'Renew All: valid patron, invalid patron password';
+$test->{msg} .= (FID_PATRON_PWD) . 'badpwd|';
+$test->{pat} = qr/^66000000000$datepat/;
+delete $test->{fields};
+$test->{fields} = [
+	       $SIPtest::field_specs{(FID_INST_ID)},
+	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
+	       $SIPtest::field_specs{(FID_PRINT_LINE)},
+		  ];
+
+push @tests, $checkout_template, $test, $checkin_template;
+
+$test = clone($renew_all_test_template);
+$test->{id} = 'Renew All: invalid patron';
+$test->{msg} =~ s/AAdjfiander/AAberick/;
+$test->{pat} = qr/^66000000000$datepat/;
+delete $test->{fields};
+$test->{fields} = [
+	       $SIPtest::field_specs{(FID_INST_ID)},
+	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
+	       $SIPtest::field_specs{(FID_PRINT_LINE)},
+		  ];
+push @tests, $test;
+
 SIPtest::run_sip_tests(@tests);
 
 1;
