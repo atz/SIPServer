@@ -1231,7 +1231,7 @@ sub handle_hold {
     }
 
     $resp .= $status->ok;
-    $resp .= sipbool($status->item && $status->item->available);
+    $resp .= sipbool($status->item && $status->item->available($patron_id));
     $resp .= Sip::timestamp;
 
     if ($status->ok) {

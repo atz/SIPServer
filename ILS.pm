@@ -370,6 +370,8 @@ sub renew {
     if (!defined($item)) {
 	# It's not checked out to $patron_id
 	$trans->screen_msg("Item not checked out to " . $patron->name);
+    } elsif (!$item->available($patron_id)) {
+	 $trans->screen_msg("Item has outstanding holds");
     } else {
 	$trans->item($item);
 	$trans->renewal_ok(1);

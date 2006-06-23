@@ -178,14 +178,23 @@ sub screen_msg {
 }
 
 sub print_line {
-    my $self = shift;
+     my $self = shift;
 
-    return $self->{print_line} || '';
+     return $self->{print_line} || '';
 }
 
+# An item is available for a patron if
+# 1) It's not checked out and (there's no hold queue OR patron
+#    is at the front of the queue)
+# OR
+# 2) It's checked out to the patron and there's no hold queue
 sub available {
-    my $self = shift;
+     my ($self, $for_patron) = shift;
 
-    return (!$self->{patron_id} && !$self->{hold_queue});
+     return ((!$self->{patron_id} && (!scalar @{$self->{hold_queue}}
+				     || $self->{hold_queue}[0] == $for_patron))
+	     || ($self->{patron_id} && ($self->{patron_id} == $for_patron)
+		 && !scalar @{$self->{hold_queue}}));
 }
+
 1;
