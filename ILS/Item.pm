@@ -189,11 +189,11 @@ sub print_line {
 # OR
 # 2) It's checked out to the patron and there's no hold queue
 sub available {
-     my ($self, $for_patron) = shift;
+     my ($self, $for_patron) = @_;
 
-     return ((!$self->{patron_id} && (!scalar @{$self->{hold_queue}}
-				     || $self->{hold_queue}[0] == $for_patron))
-	     || ($self->{patron_id} && ($self->{patron_id} == $for_patron)
+     return ((!defined($self->{patron_id}) && (!scalar @{$self->{hold_queue}}
+					       || ($self->{hold_queue}[0] eq $for_patron)))
+	     || ($self->{patron_id} && ($self->{patron_id} eq $for_patron)
 		 && !scalar @{$self->{hold_queue}}));
 }
 
