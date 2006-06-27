@@ -103,6 +103,24 @@ $test->{pat} = qr/^160N$datepat/;
 
 push @tests, $test, $hold_count_test_template0;
 
+# Cleanup: cancel miker's hold too.
+$test = clone($hold_test_template);
+$test->{id} = "Cancel hold: cleanup second patron's hold";
+$test->{msg} =~ s/\+/-/;
+$test->{msg} =~ s/djfiander/miker/;
+$test->{pat} = qr/^161[NY]$datepat/;
+delete $test->{fields};
+$test->{fields} = [
+		   $SIPtest::field_specs{(FID_INST_ID)},
+		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
+		   $SIPtest::field_specs{(FID_PRINT_LINE)},
+		   { field    => FID_PATRON_ID,
+		     pat      => qr/^miker$/,
+		     required => 1, },
+		   ];
+
+push @tests, $test;
+
 # Place hold: valid patron, item, invalid patron pwd
 $test = clone($hold_test_template);
 $test->{id} = 'Place hold: invalid patron password';
