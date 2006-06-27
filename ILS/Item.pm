@@ -15,12 +15,19 @@ use Sys::Syslog qw(syslog);
 use ILS::Transaction;
 
 our %item_db = (
-		1565921879 => {
-		    title => "Perl 5 desktop reference",
-		    id => 1565921879,
-		    sip_media_type => '001',
-		    magnetic_media => 0,
-		    hold_queue => [],
+		'1565921879' => {
+				 title => "Perl 5 desktop reference",
+				 id => '1565921879',
+				 sip_media_type => '001',
+				 magnetic_media => 0,
+				 hold_queue => [],
+				},
+		'0440242746' => {
+				 title => "The deep blue alibi",
+				 id => '0440242746',
+				 sip_media_type => '001',
+				 magnetic_media => 0,
+				 hold_queue => [],
 		}
 		);
 
@@ -138,7 +145,7 @@ sub owner {
 sub hold_queue {
     my $self = shift;
 
-    return @{$self->{hold_queue}};
+    return $self->{hold_queue};
 }
 
 sub hold_queue_position {
