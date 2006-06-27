@@ -96,7 +96,7 @@ sub checkout {
 	$circ->screen_msg("Patron Blocked");
     } elsif (!$item) {
 	$circ->screen_msg("Invalid Item");
-    } elsif ($item->hold_queue && ($patron_id ne @{$item->hold_queue}[0])) {
+    } elsif (@{$item->hold_queue} && ($patron_id ne $item->hold_queue->[0])) {
 	$circ->screen_msg("Item on Hold for Another User");
     } elsif ($item->{patron} && ($item->{patron} ne $patron_id)) {
 	# I can't deal with this right now
@@ -214,7 +214,7 @@ sub add_hold {
     $trans->item($item);
     $trans->pickup_location($pickup_location);
 
-    push(@{$item->{hold_queue}}, $hold);
+    push(@{$item->hold_queue}, $hold);
     push(@{$patron->{hold_items}}, $hold);
 
 
@@ -262,12 +262,12 @@ sub cancel_hold {
 
     # Now, remove it from the item record.  If it was on the patron
     # record but not on the item record, we'll treat that as success.
-    foreach my $i (0 .. scalar @{$item->{hold_queue}}) {
-	$hold = $item->{hold_queue}[$i];
+    foreach my $i (0 .. scalar @{$item->hold_queue}) {
+	$hold = $item->hold_queue->[$i];
 
 	if ($hold->{patron_id} eq $patron->id) {
 	    # found it: delete it.
-	    splice @{$item->{hold_queue}}, $i, 1;
+	    splice @{$item->hold_queue}, $i, 1;
 	    last;
 	}
     }
@@ -432,7 +432,7 @@ sub renew_all {
 	    next;
 	}
 
-	if ($item->hold_queue) {
+	if (@{$item->hold_queue}) {
 	    # Can't renew if there are outstanding holds
 	    push @{$trans->unrenewed}, $item_id;
 	} else {
