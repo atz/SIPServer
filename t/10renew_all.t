@@ -16,19 +16,27 @@ my $enable_template = {
     fields => [],
 };
 
-my $checkout_template = {
-    id => 'Renew All: prep: check out item',
-    msg => '11YN20060329    203000                  AOUWOLS|AAdjfiander|AB1565921879|AC|',
-    pat => qr/^121NNY$datepat/,
-    fields => [],
-};
+my @checkout_templates = (
+			  { id => 'Renew All: prep: check out Perl',
+			    msg => '11YN20060329    203000                  AOUWOLS|AAdjfiander|AB1565921879|AC|',
+			    pat => qr/^121NNY$datepat/,
+			    fields => [],},
+			  { id => 'Renew All: prep: check out Blue',
+			    msg => '11YN20060329    203000                  AOUWOLS|AAdjfiander|AB0440242746|AC|',
+			    pat => qr/^121NNY$datepat/,
+			    fields => [],}
+			 );
 
-my $checkin_template = {
-    id => 'Renew All: prep: check in item',
-    msg => '09N20060102    08423620060113    084235APUnder the bed|AOUWOLS|AB1565921879|ACterminal password|',
-    pat => qr/^10YYNN$datepat/,
-    fields => [],
-};
+my @checkin_templates = (
+			{ id => 'Renew All: prep: check in Perl',
+			  msg => '09N20060102    08423620060113    084235APUnder the bed|AOUWOLS|AB1565921879|ACterminal password|',
+			  pat => qr/^10YYNN$datepat/,
+			  fields => [],},
+			{ id => 'Renew All: prep: check in Blue',
+			  msg => '09N20060102    08423620060113    084235APUnder the bed|AOUWOLS|AB0440242746|ACterminal password|',
+			  pat => qr/^10YYNN$datepat/,
+			  fields => [],}
+		       );
 
 my $renew_all_test_template = {
     id => 'Renew All: valid patron with one item checked out, no patron password',
@@ -46,13 +54,27 @@ my $renew_all_test_template = {
 my @tests = (
 	     $SIPtest::login_test,
 	     $SIPtest::sc_status_test,
-	     $enable_template,
-	     $checkout_template,
+#	     $enable_template,
+	     $checkout_templates[0],
 	     $renew_all_test_template,
-	     $checkin_template,	# check the book in, when done testing
+	     $checkin_templates[0],	# check the book in, when done testing
 	     );
 
 my $test;
+
+#$test = clone($renew_all_test_template);
+#$test->{id} = 'Renew All: Valid patron, two items checked out';
+#$test->{pat} = qr/^66000020000$datepat/;
+#foreach my $i (0 .. (scalar @{$test->{fields}})-1) {
+#    my $field =  $test->{fields}[$i];
+#
+#    if ($field->{field} eq FID_RENEWED_ITEMS) {
+#	$field->{pat} = qr/^1565921879\|0440242746$/;
+#    }
+#}
+#
+#push @tests, $checkout_templates[0], $checkout_templates[1],
+#  $renew_all_test_template, $checkin_templates[0], $checkin_templates[1];
 
 $test = clone($renew_all_test_template);
 $test->{id} = 'Renew All: valid patron, invalid patron password';
@@ -65,7 +87,7 @@ $test->{fields} = [
 	       $SIPtest::field_specs{(FID_PRINT_LINE)},
 		  ];
 
-push @tests, $checkout_template, $test, $checkin_template;
+push @tests, $checkout_templates[0], $test, $checkin_templates[0];
 
 $test = clone($renew_all_test_template);
 $test->{id} = 'Renew All: invalid patron';
