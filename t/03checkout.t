@@ -23,6 +23,13 @@ my $patron_disable_template = {
     pat => qr/^24Y{4}[ Y]{10}000$datepat/,
     fields => [], };
 
+my $checkin_template = {
+			id => 'Checkout: cleanup: check in item',
+			msg => '09N20050102    08423620060113    084235APUnder the bed|AOUWOLS|AB1565921879|ACterminal password|',
+			pat => qr/^10YYNN$datepat/,
+			fields => [],
+		       };
+
 my $checkout_test_template = {
     id => 'Checkout: valid item, valid patron',
     msg => '11YN20060329    203000                  AOUWOLS|AAdjfiander|AB1565921879|AC|',
@@ -70,6 +77,7 @@ my @tests = (
 	     $SIPtest::login_test,
 	     $SIPtest::sc_status_test,
 	     clone($checkout_test_template),
+	     # Don't check the item in, because we're about to test renew
 	     );
 
 my $test;
@@ -83,6 +91,10 @@ $test->{id} = 'Checkout: patron renewal';
 $test->{pat} = qr/^121YNY$datepat/;
 
 push @tests, $test;
+
+# NOW check it in
+
+push @tests, $checkin_template;
 
 # Valid Patron, Invalid Item_id
 $test = clone($checkout_test_template);
