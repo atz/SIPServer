@@ -41,6 +41,7 @@ my $checkout_template = {
 my @tests = (
 	     $SIPtest::login_test,
 	     $SIPtest::sc_status_test,
+	     $checkout_template,
 	     $checkin_test_template,
 	     );
 
