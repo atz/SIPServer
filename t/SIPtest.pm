@@ -92,70 +92,64 @@ sub one_msg {
     my $resp;
     my %fields;
 
-    ok(write_msg({seqno => $seqno}, $test->{msg}, $sock), "send $test->{id}");
-    ok($resp = <$sock>, "read $test->{id}");
+    if (!write_msg({seqno => $seqno}, $test->{msg}, $sock)) {
+	fail("send $test->{id}");
+	return;
+    }
+
+    if (!($resp = <$sock>)) {
+	fail("read $test->{id}");
+	return;
+    }
+
     chomp($resp);
-    ok(verify_cksum($resp), "checksum $test->{id}");
-    like($resp, $test->{pat}, "match leader $test->{id}");
+
+    if (!verify_cksum($resp)) {
+	fail("checksum $test->{id}");
+	return;
+    }
+    if ($resp !~ $test->{pat}) {
+	fail("match leader $test->{id}");
+	diag("Response '$resp' doesn't match pattern '$test->{pat}'");
+	return;
+    }
 
     # Split the tagged fields of the response into (name, value)
     # pairs and stuff them into the hash.
     $resp =~ $test->{pat};
     %fields = substr($resp, $+[0]) =~ /(..)([^|]*)\|/go;
 
+#    print STDERR Dumper($test);
 #    print STDERR Dumper(\%fields);
     if (!defined($test->{fields})) {
-      TODO: {
-	  local $TODO = "$test->{id} field tests not written yet";
-	  
-	  ok(0, "$test->{id} field tests not written");
-      }
+	diag("TODO: $test->{id} field tests not written yet");
     } else {
 	# If there are no tagged fields, then 'fields' should be an
 	# empty list which will automatically skip this loop
 	foreach my $ftest (@{$test->{fields}}) {
 	    my $field = $ftest->{field};
 
-	    if ($ftest->{required}) {
-		ok(exists($fields{$field}),
-		   "$test->{id} required field '$field' exists in '$resp'");
+	    if ($ftest->{required} && !exists($fields{$field})) {
+		fail("$test->{id} required field '$field' exists in '$resp'");
+		return;
 	    }
 
-	    if (exists($fields{$field})) {
-		like($fields{$field}, $ftest->{pat},
-		     "$test->{id} field test $field matches in '$resp'");
-	    } else {
-		# Don't skip the test, because there's nothing to test
-		# but we need to get the number of tests right.
-		ok(1, "$test->{id} field test $field not received in '$resp'");
+	    if (exists($fields{$field}) && ($fields{$field} !~ $ftest->{pat})) {
+
+		fail("$test->{id} field test $field");
+		diag("Field pattern '$ftest->{pat}' for '$field' doesn't match in '$resp'");
+		return;
 	    }
 	}
     }
+    pass("$test->{id}");
+    return;
 }
 
 #
 # _count_tests: Count the number of tests in a test array
-#
-# There's four tests for each message (send, recv, cksum, leader) plus
-# one test for each labelled field, or one TODO test to indicate that
-# the field tests haven't been written.  This function has to be
-# kept in sync with the actual tests in run_sip_tests()
-#
 sub _count_tests {
-    my $count = 4 * scalar @_;
-
-    foreach my $test (@_) {
-	if (defined($test->{fields})) {
-	    # one test for each field, plus one extra test
-	    # for each required field
-	    foreach my $field (@{$test->{fields}}) {
-		$count += 1 + $field->{required};
-	    }
-	} else {
-	    $count += 1;
-	}
-    }
-    return $count;
+    return scalar @_;
 }
 
 sub run_sip_tests {
