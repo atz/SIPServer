@@ -41,7 +41,7 @@ our (@ISA, @EXPORT_OK, %EXPORT_TAGS);
 		FID_PICKUP_LOCN FID_FEE_TYPE FID_RECALL_ITEMS
 		FID_FEE_AMT FID_EXPIRATION FID_SUPPORTED_MSGS
 		FID_HOLD_TYPE FID_HOLD_ITEMS_LMT
-		FID_OVERDUE_ITEMS_LMT FID_CHARDED_ITEMS_LMT
+		FID_OVERDUE_ITEMS_LMT FID_CHARGED_ITEMS_LMT
 		FID_FEE_LMT FID_UNAVAILABLE_HOLD_ITEMS
 		FID_HOLD_QUEUE_LEN FID_FEE_ID FID_ITEM_PROPS
 		FID_SECURITY_INHIBIT FID_RECALL_DATE
@@ -52,7 +52,7 @@ our (@ISA, @EXPORT_OK, %EXPORT_TAGS);
 		SIP_DATETIME);
 
 %EXPORT_TAGS = (
-		
+
 		SC_msgs => [qw(PATRON_STATUS_REQ CHECKOUT CHECKIN
 			       BLOCK_PATRON SC_STATUS
 			       REQUEST_ACS_RESEND LOGIN
@@ -111,7 +111,7 @@ our (@ISA, @EXPORT_OK, %EXPORT_TAGS);
 				  FID_HOLD_TYPE
 				  FID_HOLD_ITEMS_LMT
 				  FID_OVERDUE_ITEMS_LMT
-				  FID_CHARDED_ITEMS_LMT
+				  FID_CHARGED_ITEMS_LMT
 				  FID_FEE_LMT
 				  FID_UNAVAILABLE_HOLD_ITEMS
 				  FID_HOLD_QUEUE_LEN
@@ -168,7 +168,7 @@ our (@ISA, @EXPORT_OK, %EXPORT_TAGS);
 			   FID_EXPIRATION FID_SUPPORTED_MSGS
 			   FID_HOLD_TYPE FID_HOLD_ITEMS_LMT
 			   FID_OVERDUE_ITEMS_LMT
-			   FID_CHARDED_ITEMS_LMT FID_FEE_LMT
+			   FID_CHARGED_ITEMS_LMT FID_FEE_LMT
 			   FID_UNAVAILABLE_HOLD_ITEMS
 			   FID_HOLD_QUEUE_LEN FID_FEE_ID
 			   FID_ITEM_PROPS FID_SECURITY_INHIBIT
@@ -244,36 +244,36 @@ use constant {
     FID_SCREEN_MSG             => 'AF',
     FID_PRINT_LINE             => 'AG',
     FID_DUE_DATE               => 'AH',
-    # UNUSED AI		       
+    # UNUSED AI
     FID_TITLE_ID               => 'AJ',
-    # UNUSED AK		       
+    # UNUSED AK
     FID_BLOCKED_CARD_MSG       => 'AL',
     FID_LIBRARY_NAME           => 'AM',
     FID_TERMINAL_LOCN          => 'AN',
     FID_INST_ID                => 'AO',
     FID_CURRENT_LOCN           => 'AP',
     FID_PERM_LOCN              => 'AQ',
-    # UNUSED AR		       
+    # UNUSED AR
     FID_HOLD_ITEMS             => 'AS', # SIP 2.0
     FID_OVERDUE_ITEMS          => 'AT', # SIP 2.0
     FID_CHARGED_ITEMS          => 'AU', # SIP 2.0
     FID_FINE_ITEMS             => 'AV', # SIP 2.0
-    # UNUSED AW		       
-    # UNUSED AX		       
+    # UNUSED AW
+    # UNUSED AX
     FID_SEQNO                  => 'AY',
     FID_CKSUM                  => 'AZ',
-			       
-    # SIP 2.0 Fields	       
-    # UNUSED BA		       
-    # UNUSED BB		       
-    # UNUSED BC		       
+
+    # SIP 2.0 Fields
+    # UNUSED BA
+    # UNUSED BB
+    # UNUSED BC
     FID_HOME_ADDR              => 'BD',
     FID_EMAIL                  => 'BE',
     FID_HOME_PHONE             => 'BF',
     FID_OWNER                  => 'BG',
     FID_CURRENCY               => 'BH',
     FID_CANCEL                 => 'BI',
-    # UNUSED BJ		       
+    # UNUSED BJ
     FID_TRANSACTION_ID         => 'BK',
     FID_VALID_PATRON           => 'BL',
     FID_RENEWED_ITEMS          => 'BM',
@@ -291,7 +291,7 @@ use constant {
     FID_HOLD_TYPE              => 'BY',
     FID_HOLD_ITEMS_LMT         => 'BZ',
     FID_OVERDUE_ITEMS_LMT      => 'CA',
-    FID_CHARDED_ITEMS_LMT      => 'CB',
+    FID_CHARGED_ITEMS_LMT      => 'CB',
     FID_FEE_LMT                => 'CC',
     FID_UNAVAILABLE_HOLD_ITEMS => 'CD',
     # UNUSED CE
@@ -313,18 +313,18 @@ use constant {
     FID_PATRON_CLASS           => 'PC',
 };
 
-# 
+#
 # SC Status Codes
-# 
+#
 use constant {
     SC_STATUS_OK     => '0',
     SC_STATUS_PAPER  => '1',
     SC_STATUS_SHUTDOWN => '2',
 };
 
-# 
+#
 # Various format strings
-# 
+#
 use constant {
     SIP_DATETIME => "%Y%m%d    %H%M%S",
 };
