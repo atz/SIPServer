@@ -43,7 +43,7 @@
 <!-- needs to be one institution stanza for each institution -->
 <!-- named in the accounts above. -->
 <institutions>
-    <institution id="UWOLS" implementation="ILS">
+    <institution id="UWOLS" implementation="ILS" parms="">
           <policy checkin="true" renewal="false"
 	  	  status_update="false" offline="false"
 		  timeout="600"

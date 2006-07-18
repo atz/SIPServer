@@ -7,26 +7,27 @@ use Clone qw(clone);
 
 use Sip::Constants qw(:all);
 
-use SIPtest qw($datepat $textpat);
+use SIPtest qw($datepat $textpat $instid $currency $user_barcode
+	       $item_barcode $item_title $item_owner);
 
 my $item_info_test_template = {
     id => 'Item Information: check information for available item',
-    msg => '1720060110    215612AOUWOLS|AB1565921879|',
+    msg => "1720060110    215612AO$instid|AB$item_barcode|",
     pat => qr/^18030201$datepat/,
     fields => [
 	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
 	       $SIPtest::field_specs{(FID_PRINT_LINE)},
 	       { field    => FID_ITEM_ID,
-		 pat      => qr/^1565921879$/,
+		 pat      => qr/^$item_barcode$/,
 		 required => 1, },
 	       { field    => FID_TITLE_ID,
-		 pat      => qr/^Perl 5 desktop reference$/,
+		 pat      => qr/^$item_title$/,
 		 required => 1, },
 	       { field    => FID_MEDIA_TYPE,
 		 pat      => qr/^\d{3}$/,
 		 required => 0, },
 	       { field    => FID_OWNER,
-		 pat      => qr/^UWOLS$/,
+		 pat      => qr/^$item_owner$/,
 		 required => 0, },
 	       ], };
 

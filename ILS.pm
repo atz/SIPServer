@@ -19,10 +19,25 @@ use ILS::Transaction::Renew;
 use ILS::Transaction::RenewAll;
 
 my %supports = (
-		'magnetic media' => 1,
-		'security inhibit' => 0,
-		'offline operation' => 0
-		);
+		'magnetic media'	=> 1,
+		'security inhibit'	=> 0,
+		'offline operation'	=> 0,
+		"patron status request" => 1,
+		"checkout"		=> 1,
+		"checkin"		=> 1,
+		"block patron"		=> 1,
+		"acs status"		=> 1,
+		"login"			=> 1,
+		"patron information"	=> 1,
+		"end patron session"	=> 1,
+		"fee paid"		=> 0,
+		"item information"	=> 1,
+		"item status update"	=> 0,
+		"patron enable"		=> 1,
+		"hold"			=> 1,
+		"renew"			=> 1,
+		"renew all"		=> 1,
+	       );
 
 sub new {
     my ($class, $institution) = @_;
@@ -35,6 +50,18 @@ sub new {
     return bless $self, $type;
 }
 
+sub find_patron {
+    my $self = shift;
+
+    return ILS::Patron->new(@_);
+}
+
+sub find_item {
+    my $self = shift;
+
+    return ILS::Item->new(@_);
+}
+
 sub institution {
     my $self = shift;
 
@@ -44,7 +71,7 @@ sub institution {
 sub supports {
     my ($self, $op) = @_;
 
-    return exists($supports{$op}) ? $supports{$op} : 0;
+    return (exists($supports{$op}) && $supports{$op});
 }
 
 sub check_inst_id {
@@ -56,20 +83,41 @@ sub check_inst_id {
     }
 }
 
+sub to_bool {
+    my $bool = shift;
+
+    # If it's defined, and matches a true sort of string, or is
+    # a non-zero number, then it's true.
+    return defined($bool) && (($bool =~ /true|y|yes/i) || $bool != 0);
+}
+
 sub checkout_ok {
-    return 1;
+    my $self = shift;
+
+    return (exists($self->{policy}->{checkout})
+	    && to_bool($self->{policy}->{checkout}));
 }
 
 sub checkin_ok {
-    return 0;
+    my $self = shift;
+
+    return (exists($self->{policy}->{checkin})
+	    && to_bool($self->{policy}->{checkin}));
 }
 
 sub status_update_ok {
-    return 1;
+    my $self = shift;
+
+    return (exists($self->{policy}->{status_update})
+	    && to_bool($self->{policy}->{status_update}));
+
 }
 
 sub offline_ok {
-    return 0;
+    my $self = shift;
+
+    return (exists($self->{policy}->{offline})
+	    && to_bool($self->{policy}->{offline}));
 }
 
 #
@@ -338,12 +386,12 @@ sub renew {
     $trans = new ILS::Transaction::Renew;
 
     $trans->patron($patron = new ILS::Patron $patron_id);
+
     if (!$patron) {
 	$trans->screen_msg("Invalid patron barcode.");
 
 	return $trans;
     } elsif (!$patron->renew_ok) {
-
 	$trans->screen_msg("Renewals not allowed.");
 
 	return $trans;
@@ -367,13 +415,14 @@ sub renew {
 	}
     }
 
+    $trans->item($item);
+
     if (!defined($item)) {
 	# It's not checked out to $patron_id
 	$trans->screen_msg("Item not checked out to " . $patron->name);
     } elsif (!$item->available($patron_id)) {
 	 $trans->screen_msg("Item has outstanding holds");
     } else {
-	$trans->item($item);
 	$trans->renewal_ok(1);
 
 	$trans->desensitize(0);	# It's already checked out

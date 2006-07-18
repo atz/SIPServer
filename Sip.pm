@@ -18,13 +18,14 @@ use Sip::Checksum qw(checksum);
 our @ISA = qw(Exporter);
 
 our @EXPORT_OK = qw(y_or_n timestamp add_field maybe_add add_count
-		    denied sipbool boolspace write_msg
+		    denied sipbool boolspace write_msg read_SIP_packet
 		    $error_detection $protocol_version $field_delimiter
 		    $last_response);
 
 our %EXPORT_TAGS = (
 		    all => [qw(y_or_n timestamp add_field maybe_add
 			       add_count denied sipbool boolspace write_msg
+			       read_SIP_packet
 			       $error_detection $protocol_version
 			       $field_delimiter $last_response)]);
 
@@ -36,7 +37,7 @@ our $field_delimiter = '|'; 	# Protocol Default
 # We need to keep a copy of the last message we sent to the SC,
 # in case there's a transmission error and the SC sends us a
 # REQUEST_ACS_RESEND.  If we receive a REQUEST_ACS_RESEND before
-# we've ever sent anything, then we are to respond with a 
+# we've ever sent anything, then we are to respond with a
 # REQUEST_SC_RESEND (p.16)
 
 our $last_response = '';
@@ -53,11 +54,22 @@ sub timestamp {
 #
 sub add_field {
     my ($field_id, $value) = @_;
+    my ($i, $ent);
 
     if (!defined($value)) {
 	syslog("LOG_DEBUG", "add_field: Undefined value being added to '%s'",
 	       $field_id);
+	$value = '';
     }
+
+    # Replace any occurences of the field delimiter in the
+    # field value with the HTML character entity
+    $ent = sprintf("&#%d;", ord($field_delimiter));
+
+    while (($i = index($value, $field_delimiter)) != ($[-1)) {
+	substr($value, $i, 1) = $ent;
+    }
+
     return $field_id . $value . $field_delimiter;
 }
 #
@@ -71,11 +83,11 @@ sub maybe_add {
     return (defined($value) && $value) ? add_field($fid, $value) : '';
 }
 
-# 
+#
 # add_count()  produce fixed four-character count field,
 # or a string of four spaces if the count is invalid for some
 # reason
-# 
+#
 sub add_count {
     my ($label, $count) = @_;
 
@@ -101,7 +113,7 @@ sub add_count {
 # it's permitted.  For example, 'renewal priv. denied' of 'Y' means
 # that the user's not permitted to renew.  I assume that the ILS has
 # real positive tests.
-# 
+#
 sub denied {
     my $bool = shift;
 
@@ -116,7 +128,7 @@ sub sipbool {
 
 #
 # boolspace: ' ' is false, 'Y' is true. (don't ask)
-# 
+#
 sub boolspace {
     my $bool = shift;
 
@@ -124,13 +136,24 @@ sub boolspace {
 }
 
 
+# read_SIP_packet($file)
+#
+# Read a packet from $file, using the correct record separator
+#
+sub read_SIP_packet {
+    my $file = shift;
+    local $/ = "\r";
+
+    return readline($file);
+}
+
 #
 # write_msg($msg, $file)
 #
-# Send $msg to the SC.  If error detection is active, then 
+# Send $msg to the SC.  If error detection is active, then
 # add the sequence number (if $seqno is non-zero) and checksum
 # to the message, and save the whole thing as $last_response
-# 
+#
 # If $file is set, then it's a file handle: write to it, otherwise
 # just write to the default destination.
 #

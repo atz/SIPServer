@@ -16,10 +16,6 @@ use Sip qw(:all);
 use Sip::Constants qw(:all);
 use Sip::Checksum qw(verify_cksum);
 
-use ILS;
-use ILS::Patron;
-use ILS::Item;
-
 use Data::Dumper;
 
 our (@ISA, @EXPORT_OK);
@@ -497,7 +493,7 @@ sub handle_patron_status {
 
     $ils->check_inst_id($fields->{(FID_INST_ID)}, "handle_patron_status");
 
-    $patron = new ILS::Patron $fields->{(FID_PATRON_ID)};
+    $patron = $ils->find_patron($fields->{(FID_PATRON_ID)});
 
     $resp = build_patron_status($patron, $lang, $fields);
 
@@ -659,25 +655,32 @@ sub handle_checkin {
 
     $resp .= $status->ok ? 'Y' : 'N';
     $resp .= $status->resensitize ? 'Y' : 'N';
-    if ($ils->supports('magnetic media')) {
+    if ($item && $ils->supports('magnetic media')) {
 	$resp .= sipbool($item->magnetic);
     } else {
+	# The item barcode was invalid or the system doesn't support
+	# the 'magnetic media' indicator
 	$resp .= 'U';
     }
     $resp .= $status->alert ? 'Y' : 'N';
     $resp .= Sip::timestamp;
     $resp .= add_field(FID_INST_ID, $inst_id);
     $resp .= add_field(FID_ITEM_ID, $item_id);
-    $resp .= add_field(FID_PERM_LOCN, $status->item->permanent_location);
-    $resp .= maybe_add(FID_TITLE_ID, $status->item->title_id);
+
+    if ($item) {
+	$resp .= add_field(FID_PERM_LOCN, $item->permanent_location);
+	$resp .= maybe_add(FID_TITLE_ID, $item->title_id);
+    }
 
     if ($protocol_version eq '2.00') {
 	$resp .= maybe_add(FID_SORT_BIN, $status->sort_bin);
-	if ($status->patron) {
-	    $resp .= add_field(FID_PATRON_ID, $status->patron->id);
+	if ($patron) {
+	    $resp .= add_field(FID_PATRON_ID, $patron->id);
 	}
-	$resp .= maybe_add(FID_MEDIA_TYPE, $status->item->sip_media_type);
-	$resp .= maybe_add(FID_ITEM_PROPS, $status->item->sip_item_properties);
+	if ($item) {
+	    $resp .= maybe_add(FID_MEDIA_TYPE, $item->sip_media_type);
+	    $resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
+	}
     }
 
     $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
@@ -711,7 +714,7 @@ sub handle_block_patron {
 
     $ils->check_inst_id($inst_id, "block_patron");
 
-    $patron = new ILS::Patron $patron_id;
+    $patron = $ils->find_patron($patron_id);
 
     # The correct response for a "Block Patron" message is a
     # "Patron Status Response", so use that handler to generate
@@ -823,25 +826,6 @@ sub handle_login {
 }
 
 #
-# Map from offsets in the "summary" field of the Patron Information
-# message to the corresponding field and handler
-#
-my @summary_map = (
-		   { func => ILS::Patron->can("hold_items"),
-		     fid => FID_HOLD_ITEMS },
-		   { func => ILS::Patron->can("overdue_items"),
-		     fid => FID_OVERDUE_ITEMS },
-		   { func => ILS::Patron->can("charged_items"),
-		     fid => FID_CHARGED_ITEMS },
-		   { func => ILS::Patron->can("fine_items"),
-		     fid => FID_FINE_ITEMS },
-		   { func => ILS::Patron->can("recall_items"),
-		     fid => FID_RECALL_ITEMS },
-		   { func => ILS::Patron->can("unavail_holds"),
-		     fid => FID_UNAVAILABLE_HOLD_ITEMS },
-		   );
-
-#
 # Build the detailed summary information for the Patron
 # Information Response message based on the first 'Y' that appears
 # in the 'summary' field of the Patron Information reqest.  The
@@ -849,11 +833,30 @@ my @summary_map = (
 # and we're going to believe it.
 #
 sub summary_info {
-    my ($patron, $summary, $start, $end) = @_;
+    my ($ils, $patron, $summary, $start, $end) = @_;
     my $resp = '';
-    my @itemlist;
+    my $itemlist;
     my $summary_type;
     my ($func, $fid);
+    #
+    # Map from offsets in the "summary" field of the Patron Information
+    # message to the corresponding field and handler
+    #
+    my @summary_map = (
+		       { func => $patron->can("hold_items"),
+			 fid => FID_HOLD_ITEMS },
+		       { func => $patron->can("overdue_items"),
+			 fid => FID_OVERDUE_ITEMS },
+		       { func => $patron->can("charged_items"),
+			 fid => FID_CHARGED_ITEMS },
+		       { func => $patron->can("fine_items"),
+			 fid => FID_FINE_ITEMS },
+		       { func => $patron->can("recall_items"),
+			 fid => FID_RECALL_ITEMS },
+		       { func => $patron->can("unavail_holds"),
+			 fid => FID_UNAVAILABLE_HOLD_ITEMS },
+		      );
+
 
     if (($summary_type = index($summary, 'Y')) == -1) {
 	# No detailed information required
@@ -865,10 +868,10 @@ sub summary_info {
 
     $func = $summary_map[$summary_type]->{func};
     $fid = $summary_map[$summary_type]->{fid};
-    @itemlist = &$func($patron, $start, $end);
+    $itemlist = &$func($patron, $start, $end);
 
-    syslog("LOG_DEBUG", "summary_info: list = (%s)", join(", ", @itemlist));
-    foreach my $i (@itemlist) {
+    syslog("LOG_DEBUG", "summary_info: list = (%s)", join(", ", @{$itemlist}));
+    foreach my $i (@{$itemlist}) {
 	$resp .= add_field($fid, $i);
     }
 
@@ -877,6 +880,7 @@ sub summary_info {
 
 sub handle_patron_info {
     my ($self, $server) = @_;
+    my $ils = $server->{ils};
     my ($lang, $trans_date, $summary) = @{$self->{fixed_fields}};
     my $fields = $self->{fields};
     my ($inst_id, $patron_id, $terminal_pwd, $patron_pwd, $start, $end);
@@ -889,7 +893,7 @@ sub handle_patron_info {
     $start = $fields->{(FID_START_ITEM)};
     $end = $fields->{(FID_END_ITEM)};
 
-    $patron = new ILS::Patron $patron_id;
+    $patron = $ils->find_patron($patron_id);
 
     $resp = (PATRON_INFO_RESP);
     if ($patron) {
@@ -919,7 +923,7 @@ sub handle_patron_info {
 	$resp .= maybe_add(FID_EMAIL, $patron->email_addr);
 	$resp .= maybe_add(FID_HOME_PHONE, $patron->home_phone);
 
-	$resp .= summary_info($patron, $summary, $start, $end);
+	$resp .= summary_info($ils, $patron, $summary, $start, $end);
 
 	$resp .= add_field(FID_VALID_PATRON, 'Y');
 	if (defined($patron_pwd)) {
@@ -1034,7 +1038,7 @@ sub handle_item_information {
 
     $ils->check_inst_id($fields->{(FID_INST_ID)}, "handle_item_information");
 
-    $item = new ILS::Item $fields->{(FID_ITEM_ID)};
+    $item =  $ils->find_item($fields->{(FID_ITEM_ID)});
 
     if (!defined($item)) {
 	# Invalid Item ID
@@ -1066,7 +1070,7 @@ sub handle_item_information {
 	}
 	$resp .= maybe_add(FID_OWNER, $item->owner);
 
-	if (($i = $item->hold_queue) > 0) {
+	if (($i = scalar @{$item->hold_queue}) > 0) {
 	    $resp .= add_field(FID_HOLD_QUEUE_LEN, $i);
 	}
 	if (($i = $item->due_date) != 0) {
@@ -1108,7 +1112,7 @@ sub handle_item_status_update {
 	syslog("LOG_WARNING",
 	       "handle_item_status: received message without Item ID field");
     } else {
-	$item = new ILS::Item $item_id;
+	$item = $ils->find_item($item_id);
     }
 
     if (!$item) {
@@ -1152,7 +1156,7 @@ sub handle_patron_enable {
     syslog("LOG_DEBUG", "handle_patron_enable: patron_id: '%s', patron_pwd: '%s'",
 	   $patron_id, $patron_pwd);
 
-    $patron = new ILS::Patron $patron_id;
+    $patron = $ils->find_patron($patron_id);
 
     if (!defined($patron)) {
 	# Invalid patron ID
@@ -1227,7 +1231,7 @@ sub handle_hold {
     } else {
 	syslog("LOG_WARNING", "handle_hold: Unrecognized hold mode '%s' from terminal '%s'",
 	       $hold_mode, $server->{account}->{id});
-	$status = new ILS::Transaction::Hold;
+	$status = $ils->Transaction::Hold;
 	$status->screen_msg("System error. Please contact library status");
     }
 
@@ -1320,10 +1324,12 @@ sub handle_renew {
 	# not OK, renewal not OK, Unknown media type (why bother checking?)
 	$resp .= '0NUN';
 	$resp .= Sip::timestamp;
-	$resp .= add_field(FID_PATRON_ID, $patron_id);
-	$resp .= add_field(FID_ITEM_ID, $item_id || '');
-	$resp .= add_field(FID_TITLE_ID, $title_id || '');
-	# Not checked out, no date to report
+	# If we found the patron or the item, the return the ILS
+	# information, otherwise echo back the infomation we received
+	# from the terminal
+	$resp .= add_field(FID_PATRON_ID, $patron ? $patron->id : $patron_id);
+	$resp .= add_field(FID_ITEM_ID, $item ? $item->id : $item_id);
+	$resp .= add_field(FID_TITLE_ID, $item ? $item->title_id : $title_id);
 	$resp .= add_field(FID_DUE_DATE, '');
     }
 
@@ -1397,6 +1403,25 @@ sub handle_renew_all {
 # Send an ACS Status message, which is contains lots of little fields
 # of information gleaned from all sorts of places.
 #
+
+my @message_type_names = (
+			  "patron status request",
+			  "checkout",
+			  "checkin",
+			  "block patron",
+			  "acs status",
+			  "login",
+			  "patron information",
+			  "end patron session",
+			  "fee paid",
+			  "item information",
+			  "item status update",
+			  "patron enable",
+			  "hold",
+			  "renew",
+			  "renew all",
+			 );
+
 sub send_acs_status {
     my ($self, $server, $screen_msg, $print_line) = @_;
     my $msg = ACS_STATUS;
@@ -1437,7 +1462,12 @@ sub send_acs_status {
 
     if ($protocol_version eq '2.00') {
 	# Supported messages: we do it all
-	$msg .= add_field(FID_SUPPORTED_MSGS, 'YYYYYYYYYYYYYYYY');
+	my $supported_msgs = '';
+
+	foreach my $msg_name (@message_type_names) {
+	    $supported_msgs .= Sip::sipbool($ils->supports($msg_name));
+	}
+	$msg .= add_field(FID_SUPPORTED_MSGS, $supported_msgs);
     }
 
     $msg .= maybe_add(FID_SCREEN_MSG, $screen_msg);

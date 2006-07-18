@@ -7,45 +7,46 @@ use Clone qw(clone);
 
 use Sip::Constants qw(:all);
 
-use SIPtest qw($datepat $textpat);
+use SIPtest qw($datepat $textpat $instid $currency $user_barcode
+	       $item_barcode $item_title);
 
 my $patron_enable_template = {
     id => 'Renew All: prep: enable patron permissions',
-    msg => '2520060102    084238AOUWOLS|AAdjfiander|',
-    pat => qr/^26 {4}[ Y]{10}000$datepat/,
+    msg => "2520060102    084238AO$instid|AA$user_barcode|",
+    pat => qr/^26 {4}[ Y]{10}000$datepat/o,
     fields => [],
 };
 
 my $patron_disable_template = {
     id => 'Checkout: block patron (prep to test checkout denied)',
-    msg => "01N20060102    084238AOUWOLS|ALHe's a jerk|AAdjfiander|",
+    msg => "01N20060102    084238AO$instid|ALHe's a jerk|AA$user_barcode|",
     # response to block patron is a patron status message
-    pat => qr/^24Y{4}[ Y]{10}000$datepat/,
+    pat => qr/^24Y{4}[ Y]{10}000$datepat/o,
     fields => [], };
 
 my $checkin_template = {
 			id => 'Checkout: cleanup: check in item',
-			msg => '09N20050102    08423620060113    084235APUnder the bed|AOUWOLS|AB1565921879|ACterminal password|',
-			pat => qr/^10YYNN$datepat/,
+			msg => "09N20050102    08423620060113    084235APUnder the bed|AO$instid|AB$item_barcode|ACterminal password|",
+			pat => qr/^10YYNN$datepat/o,
 			fields => [],
 		       };
 
 my $checkout_test_template = {
     id => 'Checkout: valid item, valid patron',
-    msg => '11YN20060329    203000                  AOUWOLS|AAdjfiander|AB1565921879|AC|',
+    msg => "11YN20060329    203000                  AO$instid|AA$user_barcode|AB$item_barcode|AC|",
     pat => qr/^121NNY$datepat/,
     fields => [
 	       $SIPtest::field_specs{(FID_INST_ID)},
 	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
 	       $SIPtest::field_specs{(FID_PRINT_LINE)},
 	       { field    => FID_PATRON_ID,
-		 pat      => qr/^djfiander$/,
+		 pat      => qr/^$user_barcode$/o,
 		 required => 1, },
 	       { field    => FID_ITEM_ID,
-		 pat      => qr/^1565921879$/,
+		 pat      => qr/^$item_barcode$/o,
 		 required => 1, },
 	       { field    => FID_TITLE_ID,
-		 pat      => qr/^Perl 5 desktop reference$/,
+		 pat      => qr/^$item_title$/o,
 		 required => 1, },
 	       { field    => FID_DUE_DATE,
 		 pat      => $textpat,
@@ -57,7 +58,7 @@ my $checkout_test_template = {
 		 pat      => qr/^[YN]$/,
 		 required => 0, },
 	       { field    => FID_CURRENCY,
-		 pat      => qr/^[[:upper;]]{3}$/,
+		 pat      => qr/^$currency$/o,
 		 required => 0, },
 	       { field    => FID_FEE_AMT,
 		 pat      => qr/^[.0-9]+$/,
@@ -82,15 +83,15 @@ my @tests = (
 
 my $test;
 
-# Renewal OK
-# Test this by checking out exactly the same book a second time.
-# The only difference should be that the "Renewal OK" flag should now
-# be 'Y'.
-$test = clone($checkout_test_template);
-$test->{id} = 'Checkout: patron renewal';
-$test->{pat} = qr/^121YNY$datepat/;
-
-push @tests, $test;
+## Renewal OK
+## Test this by checking out exactly the same book a second time.
+## The only difference should be that the "Renewal OK" flag should now
+## be 'Y'.
+#$test = clone($checkout_test_template);
+#$test->{id} = 'Checkout: patron renewal';
+#$test->{pat} = qr/^121YNY$datepat/;
+#
+#push @tests, $test;
 
 # NOW check it in
 
@@ -100,7 +101,7 @@ push @tests, $checkin_template;
 $test = clone($checkout_test_template);
 
 $test->{id} = 'Checkout: valid patron, invalid item';
-$test->{msg} =~ s/AB1565921879/ABno-barcode/;
+$test->{msg} =~ s/AB$item_barcode/ABno-barcode/o;
 $test->{pat} = qr/^120NUN$datepat/;
 delete $test->{fields};
 $test->{fields} = [
@@ -108,7 +109,7 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^djfiander$/,
+		     pat      => qr/^$user_barcode$/o,
 		     required => 1, },
 		   { field    => FID_ITEM_ID,
 		     pat      => qr/^no-barcode$/,
@@ -129,7 +130,7 @@ push @tests, $test;
 # Invalid patron, valid item
 $test = clone($checkout_test_template);
 $test->{id} = 'Checkout: invalid patron, valid item';
-$test->{msg} =~ s/AAdjfiander/AAberick/;
+$test->{msg} =~ s/AA$user_barcode/AAberick/;
 $test->{pat} = qr/^120NUN$datepat/;
 delete $test->{fields};
 $test->{fields} = [
@@ -140,10 +141,10 @@ $test->{fields} = [
 		     pat      => qr/^berick$/,
 		     required => 1, },
 		   { field    => FID_ITEM_ID,
-		     pat      => qr/^1565921879$/,
+		     pat      => qr/^$item_barcode$/o,
 		     required => 1, },
 		   { field    => FID_TITLE_ID,
-		     pat      => qr/^Perl 5 desktop reference$/,
+		     pat      => qr/^$item_title$/o,
 		     required => 1, },
 		   { field    => FID_DUE_DATE,
 		     pat      => qr/^$/,
@@ -158,25 +159,25 @@ push @tests, $test;
 # Needed: tests for blocked patrons, patrons with excessive
 # fines/fees, magnetic media, charging fees to borrow items.
 
-# Blocked patron
-$test = clone($checkout_test_template);
-$test->{id} = 'Checkout: Blocked patron';
-$test->{pat} = qr/^120NUN$datepat/;
-delete $test->{fields};
-$test->{fields} = [
-		   $SIPtest::field_specs{(FID_INST_ID)},
-		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
-		   $SIPtest::field_specs{(FID_PRINT_LINE)},
-		   { field    => FID_PATRON_ID,
-		     pat      => qr/^djfiander$/,
-		     required => 1, },
-		   { field    => FID_VALID_PATRON,
-		     pat      => qr/^Y$/,
-		     required => 1, },
-		  ];
-
-push @tests, $patron_disable_template, $test, $patron_enable_template;
-
+## Blocked patron
+#$test = clone($checkout_test_template);
+#$test->{id} = 'Checkout: Blocked patron';
+#$test->{pat} = qr/^120NUN$datepat/;
+#delete $test->{fields};
+#$test->{fields} = [
+#		   $SIPtest::field_specs{(FID_INST_ID)},
+#		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
+#		   $SIPtest::field_specs{(FID_PRINT_LINE)},
+#		   { field    => FID_PATRON_ID,
+#		     pat      => qr/^$user_barcode$/,
+#		     required => 1, },
+#		   { field    => FID_VALID_PATRON,
+#		     pat      => qr/^Y$/,
+#		     required => 1, },
+#		  ];
+#
+#push @tests, $patron_disable_template, $test, $patron_enable_template;
+#
 SIPtest::run_sip_tests(@tests);
 
 1;

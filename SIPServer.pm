@@ -45,7 +45,7 @@ foreach my $svc (keys %{$config->{listeners}}) {
 # Logging
 #
 push @parms, "log_file=Sys::Syslog", "syslog_ident=acs-server",
-    "syslog_facility=" . LOG_SIP;
+  "syslog_facility=" . LOG_SIP;
 
 #
 # Server Management: set parameters for the Net::Server::PreFork
@@ -113,7 +113,6 @@ sub raw_transport {
     my $strikes = 3;
     my $expect;
     my $inst;
-    local $/ = "\r";
 
     eval {
 	local $SIG{ALRM} = sub { die "alarm\n"; };
@@ -121,7 +120,7 @@ sub raw_transport {
 	       $service->{timeout});
 	while ($strikes--) {
 	    alarm $service->{timeout};
-	    $input = <STDIN>;
+	    $input = Sip::read_SIP_packet(*STDIN);
 	    alarm 0;
 
 	    if (!$input) {
@@ -151,7 +150,7 @@ sub raw_transport {
     $inst = $self->{account}->{institution};
     $self->{institution} = $self->{config}->{institutions}->{$inst};
     $self->{policy} = $self->{institution}->{policy};
-    
+
     $self->sip_protocol_loop();
 
     syslog("LOG_INFO", "raw_transport: shutting down");
@@ -164,7 +163,6 @@ sub telnet_transport {
     my $account = undef;
     my $input;
     my $config = $self->{config};
-    local $/ = "\n";
 
     # Until the terminal has logged in, we don't trust it
     # so use a timeout to protect ourselves from hanging.
@@ -233,8 +231,6 @@ sub sip_protocol_loop {
     my $config = $self->{config};
     my $input;
 
-    local $/ = "\r";		# SIP protocol message terminator
-
     #
     # initialize connection to ILS
     #
@@ -250,8 +246,7 @@ sub sip_protocol_loop {
 	die("ILS initialization failed");
     }
 
-    $self->{ils} = $module->new( $self->{institution} );
-
+    $self->{ils} = $module->new($self->{institution}, $self->{account});
 
     if (!$self->{ils}) {
 	syslog("LOG_ERR", "%s: ILS connection to '%s' failed, exiting",
@@ -264,7 +259,7 @@ sub sip_protocol_loop {
     # SC_REQUEST_RESEND, we keep waiting for an SC_STATUS
     $expect = SC_STATUS;
 
-    while ($input = <STDIN>) {
+    while ($input = Sip::read_SIP_packet(*STDIN)) {
 	my $status;
 
 	$input =~ s/[\r\n]+$//sm;	# Strip off any trailing line ends

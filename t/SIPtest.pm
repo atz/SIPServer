@@ -1,5 +1,8 @@
 package SIPtest;
 
+use strict;
+use warnings;
+
 use Exporter;
 
 our @ISA = qw(Exporter);
@@ -7,10 +10,12 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
 		    $datepat $textpat
 		    $login_test $sc_status_test
-		    %field_specs);
-use strict;
-use warnings;
+		    %field_specs
 
+		    $instid $currency $server $username $password
+		    $user_barcode $user_pin $user_fullname $user_homeaddr
+		    $user_email $user_phone $user_birthday $user_ptype
+		    $item_barcode $item_title $item_owner);
 #use Data::Dumper;
 
 # The number of tests is set in run_sip_tests() below, based
@@ -21,6 +26,37 @@ use IO::Socket::INET;
 use Sip qw(:all);
 use Sip::Checksum qw(verify_cksum);
 use Sip::Constants qw(:all);
+
+# 
+# Configuration parameters to run the test suite
+#
+our $instid = 'UWOLS';
+our $currency = 'CAD';
+our $server   = 'localhost:6001'; # Address of the SIP server
+
+# SIP username and password to connect to the server.  See the
+# SIP config.xml for the correct values.
+our $username = 'scclient';
+our $password = 'clientpwd';
+
+# ILS Information
+
+# Valid user barcode and corresponding user password/pin and full name
+our $user_barcode = 'djfiander';
+our $user_pin     = '6789';
+our $user_fullname= 'David J\. Fiander';
+our $user_homeaddr= '2 Meadowvale Dr\. St Thomas, ON';
+our $user_email   = 'djfiander\@hotmail\.com';
+our $user_phone   = '\(519\) 555 1234';
+our $user_birthday= '19640925';
+our $user_ptype   = 'A';
+
+# Valid item barcode and corresponding title
+our $item_barcode = '1565921879';
+our $item_title   = 'Perl 5 desktop reference';
+our $item_owner   = 'UWOLS';
+
+# End configuration
 
 # Pattern for a SIP datestamp, to be used by individual tests to
 # match timestamp fields (duh).
@@ -37,7 +73,7 @@ our %field_specs = (
 					  pat      => $textpat,
 					  required => 0, },
 		    (FID_INST_ID)    => { field    => FID_INST_ID,
-					  pat      => qr/^UWOLS$/,
+					  pat      => qr/^$instid$/o,
 					  required => 1, },
 		    (FID_HOLD_ITEMS_LMT)=> { field    => FID_HOLD_ITEMS_LMT,
 					     pat      => qr/^\d{4}$/,
@@ -45,7 +81,7 @@ our %field_specs = (
 		    (FID_OVERDUE_ITEMS_LMT)=> { field    => FID_OVERDUE_ITEMS_LMT,
 						pat      => qr/^\d{4}$/,
 						required => 0, },
-		    (FID_CHARDED_ITEMS_LMT)=> { field    => FID_CHARDED_ITEMS_LMT,
+		    (FID_CHARGED_ITEMS_LMT)=> { field    => FID_CHARGED_ITEMS_LMT,
 						pat      => qr/^\d{4}$/,
 						required => 0, },
 		    (FID_VALID_PATRON) => { field    => FID_VALID_PATRON,
@@ -55,7 +91,7 @@ our %field_specs = (
 					       pat      => qr/^[NY]$/,
 					       required => 0, },
 		    (FID_CURRENCY)   => { field    => FID_CURRENCY,
-					  pat      => qr/^CAD$/,
+					  pat      => qr/^$currency$/io,
 					  required => 0, },
 		    );
 
@@ -64,7 +100,7 @@ our %field_specs = (
 # cases here and reference them in the individual test files.
 
 our $login_test = { id => 'login',
-		    msg => '9300CNscclient|COclientpwd|CPThe basement|',
+		    msg => "9300CN$username|CO$password|CPThe floor|",
 		    pat => qr/^941/,
 		    fields => [], };
 
@@ -92,14 +128,12 @@ sub one_msg {
     my $resp;
     my %fields;
 
+    # If reading or writing fails, then the server's dead,
+    # so there's no point in continuing.
     if (!write_msg({seqno => $seqno}, $test->{msg}, $sock)) {
-	fail("send $test->{id}");
-	return;
-    }
-
-    if (!($resp = <$sock>)) {
-	fail("read $test->{id}");
-	return;
+	BAIL_OUT("Write failure in $test->{id}");
+    } elsif (!($resp = <$sock>)) {
+	BAIL_OUT("Read failure in $test->{id}");
     }
 
     chomp($resp);
@@ -158,8 +192,9 @@ sub run_sip_tests {
     $Sip::error_detection = 1;
     $/ = "\r";
 
-    $sock = new IO::Socket::INET(PeerAddr => 'localhost:6001',
+    $sock = new IO::Socket::INET(PeerAddr => $server,
 				 Type     => SOCK_STREAM);
+
     BAIL_OUT('failed to create connection to server') unless $sock;
 
     $seqno = 1;
