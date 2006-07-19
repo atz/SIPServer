@@ -15,7 +15,8 @@ our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
 		    $instid $currency $server $username $password
 		    $user_barcode $user_pin $user_fullname $user_homeaddr
 		    $user_email $user_phone $user_birthday $user_ptype
-		    $item_barcode $item_title $item_owner);
+		    $item_barcode $item_title $item_owner
+		    $item2_barcode $item2_title $item2_owner);
 #use Data::Dumper;
 
 # The number of tests is set in run_sip_tests() below, based
@@ -55,6 +56,11 @@ our $user_ptype   = 'A';
 our $item_barcode = '1565921879';
 our $item_title   = 'Perl 5 desktop reference';
 our $item_owner   = 'UWOLS';
+
+# Another valid item
+our $item2_barcode = '0440242746';
+our $item2_title   = 'The deep blue alibi';
+our $item2_owner   = 'UWOLS';
 
 # End configuration
 
