@@ -48,6 +48,7 @@ our %patron_db = (
 		      fine_items => ['Computer Time'],
 		      recall_items => [],
 		      unavail_holds => [],
+		      inet => 1,
 		  },
 		  miker => {
 		      name => "Mike Rylander",
@@ -76,6 +77,7 @@ our %patron_db = (
 		      fine_items => [],
 		      recall_items => [],
 		      unavail_holds => [],
+		      inet => 0,
 		  },
 		  );
 
@@ -367,6 +369,13 @@ sub enable {
     $self->{screen_msg} = "All privileges restored.";
 
     return $self;
+}
+
+
+sub inet_privileges {
+    my $self = shift;
+
+    return $self->{inet} ? 'Y' : 'N';
 }
 
 #

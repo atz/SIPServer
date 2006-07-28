@@ -457,6 +457,7 @@ sub build_patron_status {
 	    $resp .= maybe_add(FID_CURRENCY, $patron->currency);
 	    $resp .= maybe_add(FID_FEE_AMT, $patron->fee_amount);
 	}
+
 	$resp .= maybe_add(FID_SCREEN_MSG, $patron->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $patron->print_line);
     } else {
@@ -939,6 +940,8 @@ sub handle_patron_info {
 	$resp .= maybe_add(FID_PATRON_BIRTHDATE, $patron->sip_birthdate);
 	$resp .= maybe_add(FID_PATRON_CLASS, $patron->ptype);
 
+	# Custom protocol extension to report patron internet privileges
+	$resp .= maybe_add(FID_INET_PROFILE, $patron->inet_privileges);
     } else {
 	# Invalid patron ID
 	# He has no privileges, no items associated with him,
