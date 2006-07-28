@@ -13,7 +13,7 @@ use SIPtest qw($datepat $textpat $instid $currency $user_barcode
 my $item_info_test_template = {
     id => 'Item Information: check information for available item',
     msg => "1720060110    215612AO$instid|AB$item_barcode|",
-    pat => qr/^18030201$datepat/,
+    pat => qr/^180[13]0201$datepat/, # status of 'other' or 'available'
     fields => [
 	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
 	       $SIPtest::field_specs{(FID_PRINT_LINE)},
