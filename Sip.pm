@@ -31,7 +31,7 @@ our %EXPORT_TAGS = (
 
 
 our $error_detection = 0;
-our $protocol_version = "1.00";
+our $protocol_version = 1;
 our $field_delimiter = '|'; 	# Protocol Default
 
 # We need to keep a copy of the last message we sent to the SC,

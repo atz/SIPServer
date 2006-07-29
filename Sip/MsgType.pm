@@ -47,7 +47,7 @@ my %handlers = (
 		    name => "Patron Status Request",
 		    handler => \&handle_patron_status,
 		    protocol => {
-			"1.00" => {
+			1 => {
 			    template => "A3A18",
 			    template_len => 21,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
@@ -59,13 +59,13 @@ my %handlers = (
 		    name => "Checkout",
 		    handler => \&handle_checkout,
 		    protocol => {
-			"1.00" => {
+			1 => {
 			    template => "CCA18A18",
 			    template_len => 38,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
 				       (FID_ITEM_ID), (FID_TERMINAL_PWD)],
 			},
-			"2.00" => {
+			2 => {
 			    template => "CCA18A18",
 			    template_len => 38,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
@@ -79,13 +79,13 @@ my %handlers = (
 		    name => "Checkin",
 		    handler => \&handle_checkin,
 		    protocol => {
-			"1.00" => {
+			1 => {
 			    template => "CA18A18",
 			    template_len => 37,
 			    fields => [(FID_CURRENT_LOCN), (FID_INST_ID),
 				       (FID_ITEM_ID), (FID_TERMINAL_PWD)],
 			},
-			"2.00" => {
+			2 => {
 			    template => "CA18A18",
 			    template_len => 37,
 			    fields => [(FID_CURRENT_LOCN), (FID_INST_ID),
@@ -98,7 +98,7 @@ my %handlers = (
 		    name => "Block Patron",
 		    handler => \&handle_block_patron,
 		    protocol => {
-			"1.00" => {
+			1 => {
 			    template => "CA18",
 			    template_len => 19,
 			    fields => [(FID_INST_ID), (FID_BLOCKED_CARD_MSG),
@@ -110,7 +110,7 @@ my %handlers = (
 		    name => "SC Status",
 		    handler => \&handle_sc_status,
 		    protocol => {
-			"1.00" => {
+			1 => {
 			    template =>"CA3A4",
 			    template_len => 8,
 			    fields => [],
@@ -121,7 +121,7 @@ my %handlers = (
 		    name => "Request ACS Resend",
 		    handler => \&handle_request_acs_resend,
 		    protocol => {
-			"1.00" => {
+			1 => {
 			    template => "",
 			    template_len => 0,
 			    fields => [],
@@ -132,7 +132,7 @@ my %handlers = (
 		    name => "Login",
 		    handler => \&handle_login,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "A1A1",
 			    template_len => 2,
 			    fields => [(FID_LOGIN_UID), (FID_LOGIN_PWD),
@@ -144,7 +144,7 @@ my %handlers = (
 		    name => "Patron Info",
 		    handler => \&handle_patron_info,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "A3A18A10",
 			    template_len => 31,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
@@ -157,7 +157,7 @@ my %handlers = (
 		    name => "End Patron Session",
 		    handler => \&handle_end_patron_session,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "A18",
 			    template_len => 18,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
@@ -169,7 +169,7 @@ my %handlers = (
 		    name => "Fee Paid",
 		    handler => \&handle_fee_paid,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "A18A2A3",
 			    template_len => 0,
 			    fields => [(FID_FEE_AMT), (FID_INST_ID),
@@ -183,7 +183,7 @@ my %handlers = (
 		    name => "Item Information",
 		    handler => \&handle_item_information,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "A18",
 			    template_len => 18,
 			    fields => [(FID_INST_ID), (FID_ITEM_ID),
@@ -195,7 +195,7 @@ my %handlers = (
 		    name => "Item Status Update",
 		    handler => \&handle_item_status_update,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "A18",
 			    template_len => 18,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
@@ -208,7 +208,7 @@ my %handlers = (
 		    name => "Patron Enable",
 		    handler => \&handle_patron_enable,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "A18",
 			    template_len => 18,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
@@ -220,7 +220,7 @@ my %handlers = (
 		    name => "Hold",
 		    handler => \&handle_hold,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "AA18",
 			    template_len => 19,
 			    fields => [(FID_EXPIRATION), (FID_PICKUP_LOCN),
@@ -235,7 +235,7 @@ my %handlers = (
 		    name => "Renew",
 		    handler => \&handle_renew,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "CCA18A18",
 			    template_len => 38,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
@@ -249,7 +249,7 @@ my %handlers = (
 		    name => "Renew All",
 		    handler => \&handle_renew_all,
 		    protocol => {
-			"2.00" => {
+			2 => {
 			    template => "A18",
 			    template_len => 18,
 			    fields => [(FID_INST_ID), (FID_PATRON_ID),
@@ -264,9 +264,9 @@ my %handlers = (
 # Now, initialize some of the missing bits of %handlers
 #
 foreach my $i (keys(%handlers)) {
-    if (!exists($handlers{$i}->{protocol}->{"2.00"})) {
+    if (!exists($handlers{$i}->{protocol}->{2})) {
 
-	$handlers{$i}->{protocol}->{"2.00"} = $handlers{$i}->{protocol}->{"1.00"};
+	$handlers{$i}->{protocol}->{2} = $handlers{$i}->{protocol}->{1};
     }
 }
 
@@ -283,7 +283,7 @@ sub new {
 	# _before_ the client has indicated that it supports 2.00, but
 	# it's using the 2.00 login process, so it must support 2.00,
 	# so we'll just do it.
-	$protocol_version = "2.00";
+	$protocol_version = 2;
     }
     if (!exists($handlers{$msgtag})) {
 	syslog("LOG_WARNING",
@@ -291,7 +291,7 @@ sub new {
 	       $msgtag, $msg);
 	return(undef);
     } elsif (!exists($handlers{$msgtag}->{protocol}->{$protocol_version})) {
-	syslog("LOG_WARNING", "new Sip::MsgType: Skipping message '%s' unsupported by protocol rev. '%s'",
+	syslog("LOG_WARNING", "new Sip::MsgType: Skipping message '%s' unsupported by protocol rev. '%d'",
 	       $msgtag, $protocol_version);
 	return(undef);
     }
@@ -445,7 +445,7 @@ sub build_patron_status {
 	# while the patron ID we got from the SC is valid, let's
 	# use the one returned from the ILS, just in case...
 	$resp .= add_field(FID_PATRON_ID, $patron->id);
-	if ($protocol_version eq '2.00') {
+	if ($protocol_version >= 2) {
 	    $resp .= add_field(FID_VALID_PATRON, 'Y');
 	    # If the patron password field doesn't exist, then
 	    # we can't report that the password was valid, now can
@@ -470,7 +470,7 @@ sub build_patron_status {
 	# just echo it back
 	$resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
 
-	if ($protocol_version eq '2.00') {
+	if ($protocol_version >= 2) {
 	    $resp .= add_field(FID_VALID_PATRON, 'N');
 	}
     }
@@ -565,7 +565,7 @@ sub handle_checkout {
 	$resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
 
-	if ($protocol_version eq '2.00') {
+	if ($protocol_version >= 2) {
 	    if ($ils->supports('security inhibit')) {
 		$resp .= add_field(FID_SECURITY_INHIBIT,
 				   $status->security_inhibit);
@@ -602,7 +602,7 @@ sub handle_checkout {
 	$resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
 	$resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
 
-	if ($protocol_version eq '2.00') {
+	if ($protocol_version >= 2) {
 	    # Is the patron ID valid?
 	    $resp .= add_field(FID_VALID_PATRON, sipbool($patron));
 
@@ -673,7 +673,7 @@ sub handle_checkin {
 	$resp .= maybe_add(FID_TITLE_ID, $item->title_id);
     }
 
-    if ($protocol_version eq '2.00') {
+    if ($protocol_version >= 2) {
 	$resp .= maybe_add(FID_SORT_BIN, $status->sort_bin);
 	if ($patron) {
 	    $resp .= add_field(FID_PATRON_ID, $patron->id);
@@ -739,13 +739,22 @@ sub handle_block_patron {
 
 sub handle_sc_status {
     my ($self, $server) = @_;
-    my ($status, $print_width, $sc_protocol_version);
+    my ($status, $print_width, $sc_protocol_version, $new_proto);
 
     ($status, $print_width, $sc_protocol_version) = @{$self->{fixed_fields}};
 
-    if ($sc_protocol_version ne $protocol_version) {
-	syslog("LOG_INFO", "Setting protocol level to $sc_protocol_version");
-	$protocol_version = $sc_protocol_version;
+    if ($sc_protocol_version =~ /^1\./) {
+	$new_proto = 1;
+    } elsif ($sc_protocol_version =~ /^2\./) {
+	$new_proto = 2;
+    } else {
+	syslog("LOG_WARNING", "Unrecognized protocol revision '%s', falling back to '1'", $sc_protocol_version);
+	$new_proto = 1;
+    }
+
+    if ($new_proto != $protocol_version) {
+	syslog("LOG_INFO", "Setting protocol level to $new_proto");
+	$protocol_version = $new_proto;
     }
 
     if ($status == SC_STATUS_PAPER) {
@@ -954,7 +963,7 @@ sub handle_patron_info {
 	# just echo it back
 	$resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
 
-	if ($protocol_version eq '2.00') {
+	if ($protocol_version >= 2) {
 	    $resp .= add_field(FID_VALID_PATRON, 'N');
 	}
     }
@@ -1458,12 +1467,22 @@ sub send_acs_status {
     $msg .= "$online_status$checkin_ok$checkout_ok$ACS_renewal_policy";
     $msg .= "$status_update_ok$offline_ok$timeout$retries";
     $msg .= Sip::timestamp();
-    $msg .= $protocol_version;
+
+    if ($protocol_version == 1) {
+	$msg .= '1.00';
+    } elsif ($protocol_version == 2) {
+	$msg .= '2.00';
+    } else {
+	syslog("LOG_ERROR",
+	       'Bad setting for $protocol_version, "%s" in send_acs_status',
+	       $protocol_version);
+	$msg .= '1.00';
+    }
 
     # Institution ID
     $msg .= add_field(FID_INST_ID, $account->{institution});
 
-    if ($protocol_version eq '2.00') {
+    if ($protocol_version >= 2) {
 	# Supported messages: we do it all
 	my $supported_msgs = '';
 
