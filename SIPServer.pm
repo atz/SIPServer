@@ -257,7 +257,17 @@ sub sip_protocol_loop {
     # we recieve must be an SC_STATUS message.  But it might be
     # an SC_REQUEST_RESEND.  So, as long as we keep receiving
     # SC_REQUEST_RESEND, we keep waiting for an SC_STATUS
-    $expect = SC_STATUS;
+
+    # Comprise reports that no other ILS actually enforces this
+    # constraint, so we'll relax about it too.  As long as everybody
+    # uses the SIP "raw" login process, rather than telnet, this
+    # will be fine, becaues the LOGIN protocol exchange will force
+    # us into SIP 2.00 anyway.  Machines that want to log in using
+    # telnet MUST send an SC Status message first, even though we're
+    # not enforcing it.
+    # 
+    #$expect = SC_STATUS;
+    $expect = '';
 
     while ($input = Sip::read_SIP_packet(*STDIN)) {
 	my $status;
