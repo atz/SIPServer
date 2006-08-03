@@ -27,7 +27,7 @@ my $patron_disable_template = {
 my $checkin_template = {
 			id => 'Checkout: cleanup: check in item',
 			msg => "09N20050102    08423620060113    084235APUnder the bed|AO$instid|AB$item_barcode|ACterminal password|",
-			pat => qr/^10YYNN$datepat/o,
+			pat => qr/^101YNN$datepat/o,
 			fields => [],
 		       };
 

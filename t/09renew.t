@@ -20,7 +20,7 @@ my $checkout_template = {
 my $checkin_template = {
 			id => 'Renew: prep: check in item',
 			msg => "09N20060102    08423620060113    084235APUnder the bed|AO$instid|AB$item_barcode|ACterminal password|",
-			pat => qr/^10YYNN$datepat/,
+			pat => qr/^101YNN$datepat/,
 			fields => [],
 		       };
 

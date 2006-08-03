@@ -13,7 +13,7 @@ use SIPtest qw($datepat $textpat $instid $user_barcode
 my $checkin_test_template = {
     id => 'Checkin: Item is checked out',
     msg => "09N20060102    08423620060113    084235APUnder the bed|AO$instid|AB$item_barcode|ACterminal password|",
-    pat => qr/^10YYNN$datepat/o,
+    pat => qr/^101YNN$datepat/o,
     fields => [
 	       $SIPtest::field_specs{(FID_INST_ID)},
 	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
@@ -53,7 +53,7 @@ my $test;
 # the ILS didn't check the item in, and there's no patron id.
 $test = clone($checkin_test_template);
 $test->{id} = 'Checkin: Item not checked out';
-$test->{pat} = qr/^10NYNN$datepat/o;
+$test->{pat} = qr/^100YNN$datepat/o;
 $test->{fields} = [grep $_->{field} ne FID_PATRON_ID, @{$test->{fields}}];
 
 push @tests, $test;

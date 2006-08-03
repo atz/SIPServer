@@ -31,11 +31,11 @@ my @checkout_templates = (
 my @checkin_templates = (
 			{ id => "Renew All: prep: check in $item_barcode",
 			  msg => "09N20060102    08423620060113    084235APUnder the bed|AO$instid|AB$item_barcode|ACterminal password|",
-			  pat => qr/^10YYNN$datepat/,
+			  pat => qr/^101YNN$datepat/,
 			  fields => [],},
 			{ id => "Renew All: prep: check in $item2_barcode",
 			  msg => "09N20060102    08423620060113    084235APUnder the bed|AO$instid|AB$item2_barcode|ACterminal password|",
-			  pat => qr/^10YYNN$datepat/,
+			  pat => qr/^101YNN$datepat/,
 			  fields => [],}
 		       );
 
