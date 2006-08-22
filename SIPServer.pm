@@ -125,7 +125,7 @@ sub raw_transport {
 
 	    if (!$input) {
 		# EOF on the socket
-		syslog("LOG_INFO", "raw_transport: shutting down");
+		syslog("LOG_INFO", "raw_transport: shutting down: EOF during login");
 		return;
 	    }
 
