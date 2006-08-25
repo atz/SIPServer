@@ -28,7 +28,14 @@ our %item_db = (
 				 sip_media_type => '001',
 				 magnetic_media => 0,
 				 hold_queue => [],
-		}
+		},
+		'660' => {
+				 title => "Harry Potter y el cáliz de fuego",
+				 id => '660',
+				 sip_media_type => '001',
+				 magnetic_media => 0,
+				 hold_queue => [],
+			 },
 		);
 
 sub new {
