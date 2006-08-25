@@ -17,7 +17,9 @@ our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
 		    $user_email $user_phone $user_birthday $user_ptype
 		    $user_inet
 		    $item_barcode $item_title $item_owner
-		    $item2_barcode $item2_title $item2_owner);
+		    $item2_barcode $item2_title $item2_owner
+		    $item_diacritic_barcode $item_diacritic_title
+		    $item_diacritic_owner);
 #use Data::Dumper;
 
 # The number of tests is set in run_sip_tests() below, based
@@ -63,6 +65,11 @@ our $item_owner   = 'UWOLS';
 our $item2_barcode = '0440242746';
 our $item2_title   = 'The deep blue alibi';
 our $item2_owner   = 'UWOLS';
+
+# An item with a diacritical in the title
+our $item_diacritic_barcode = '660';
+our $item_diacritic_title = 'Harry Potter y el cáliz de fuego';
+our $item_diacritic_owner = 'UWOLS';
 
 # End configuration
 

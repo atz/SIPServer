@@ -8,7 +8,9 @@ use Clone qw(clone);
 use Sip::Constants qw(:all);
 
 use SIPtest qw($datepat $textpat $instid $currency $user_barcode
-	       $item_barcode $item_title);
+	       $item_barcode $item_title
+	       $item_diacritic_barcode $item_diacritic_title
+	       $item_diacritic_owner);
 
 my $patron_enable_template = {
     id => 'Renew All: prep: enable patron permissions',
@@ -96,6 +98,30 @@ my $test;
 # NOW check it in
 
 push @tests, $checkin_template;
+
+# Valid Patron, item with diacritical in the title
+$test = clone($checkout_test_template);
+
+$test->{id} = 'Checkout: valid patron, diacritical character in title';
+$test->{msg} =~ s/AB$item_barcode/AB$item_diacritic_barcode/;
+
+foreach my $i (0 .. (scalar @{$test->{fields}})-1) {
+    my $field =  $test->{fields}[$i];
+
+    if ($field->{field} eq FID_ITEM_ID) {
+	$field->{pat} = qr/^$item_diacritic_barcode$/;
+    } elsif ($field->{field} eq FID_TITLE_ID) {
+	$field->{pat} = qr/^$item_diacritic_title$/;
+    } elsif ($field->{field} eq FID_OWNER) {
+	$field->{pat} = qr/^$item_diacritic_owner$/;
+    }
+}
+
+push @tests, $test;
+
+$test = clone($checkin_template);
+$test->{msg} =~ s/AB$item_barcode/AB$item_diacritic_barcode/;
+push @tests, $test;
 
 # Valid Patron, Invalid Item_id
 $test = clone($checkout_test_template);
