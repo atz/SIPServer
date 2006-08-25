@@ -1,4 +1,3 @@
-
 package Sip::Checksum;
 
 use Exporter;
@@ -10,8 +9,15 @@ our @EXPORT_OK = qw(checksum verify_cksum);
 
 sub checksum {
     my $pkt = shift;
+    my $cksum;
 
-    return (-unpack("%16C*", $pkt)) & 0xFFFF;
+    $cksum = 0;
+    foreach my $chr (map(ord, split(//, $pkt))) {
+	$cksum += $chr;
+    }
+    $cksum = (-$cksum) & 0xFFFF;
+
+    return $cksum;
 }
 
 sub verify_cksum {
@@ -52,3 +58,5 @@ while (<>) {
     chomp;
     test($_);
 }
+
+1;
