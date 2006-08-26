@@ -9,15 +9,8 @@ our @EXPORT_OK = qw(checksum verify_cksum);
 
 sub checksum {
     my $pkt = shift;
-    my $cksum;
 
-    $cksum = 0;
-    foreach my $chr (map(ord, split(//, $pkt))) {
-	$cksum += $chr;
-    }
-    $cksum = (-$cksum) & 0xFFFF;
-
-    return $cksum;
+    return (-unpack('%16U*', $pkt) & 0xFFFF);
 }
 
 sub verify_cksum {
@@ -30,7 +23,7 @@ sub verify_cksum {
     # Convert the checksum back to hex and calculate the sum of the
     # pack without the checksum.
     $cksum = hex(substr($pkt, -4));
-    $shortsum = unpack("%16C*", substr($pkt, 0, -4));
+    $shortsum = unpack("%16U*", substr($pkt, 0, -4));
 
     # The checksum is valid if the hex sum, plus the checksum of the 
     # base packet short when truncated to 16 bits.
