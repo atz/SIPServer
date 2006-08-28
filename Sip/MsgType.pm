@@ -1425,6 +1425,7 @@ my @message_type_names = (
 			  "checkin",
 			  "block patron",
 			  "acs status",
+			  "request sc/acs resend",
 			  "login",
 			  "patron information",
 			  "end patron session",
@@ -1490,7 +1491,14 @@ sub send_acs_status {
 	my $supported_msgs = '';
 
 	foreach my $msg_name (@message_type_names) {
-	    $supported_msgs .= Sip::sipbool($ils->supports($msg_name));
+	    if ($msg_name eq 'request sc/acs resend') {
+		$supported_msgs .= Sip::sipbool(1);
+	    } else {
+		$supported_msgs .= Sip::sipbool($ils->supports($msg_name));
+	    }
+	}
+	if (length($supported_msgs) < 16) {
+	    syslog("LOG_ERROR", 'send_acs_status: supported messages "%s" too short', $supported_msgs);
 	}
 	$msg .= add_field(FID_SUPPORTED_MSGS, $supported_msgs);
     }
