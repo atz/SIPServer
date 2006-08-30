@@ -929,6 +929,15 @@ sub handle_patron_info {
 
 	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
 
+	# TODO: add code for the fields
+	# hold items limit
+	# overdue items limit
+	# charged items limit
+	# fee limit
+
+	$resp .= maybe_add(FID_CURRENCY, $patron->currency);
+	$resp .= maybe_add(FID_FEE_AMT, $patron->fee_amount);
+
 	$resp .= maybe_add(FID_HOME_ADDR,$patron->address);
 	$resp .= maybe_add(FID_EMAIL, $patron->email_addr);
 	$resp .= maybe_add(FID_HOME_PHONE, $patron->home_phone);
