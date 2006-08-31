@@ -54,7 +54,7 @@ my $renew_test_template = {
 					pat      => qr/^$item_barcode$/,
 					required => 1, },
 				      { field    => FID_TITLE_ID,
-					pat      => qr/^$item_title$/,
+					pat      => qr/^$item_title\s*$/,
 					required => 1, },
 				      { field    => FID_DUE_DATE,
 					pat      => qr/^$datepat$/,
@@ -101,7 +101,7 @@ foreach my $field (@{$test->{fields}}) {
     if ($field->{field} eq FID_DUE_DATE) {
 	$field->{pat} = qr/^$/;
     } elsif ($field->{field} eq FID_TITLE_ID) {
-	$field->{pat} = qr/^($item_title|)$/;
+	$field->{pat} = qr/^($item_title\s*|)$/;
     }
 }
 
@@ -131,7 +131,7 @@ foreach my $field (@{$test->{fields}}) {
     } elsif ($field->{field} eq FID_PATRON_ID) {
 	$field->{pat} = qr/^berick$/;
     } elsif ($field->{field} eq FID_TITLE_ID) {
-	$field->{pat} = qr/^($item_title|)$/;
+	$field->{pat} = qr/^($item_title\s*|)$/;
     }
 }
 

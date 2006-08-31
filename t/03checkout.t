@@ -48,7 +48,7 @@ my $checkout_test_template = {
 		 pat      => qr/^$item_barcode$/o,
 		 required => 1, },
 	       { field    => FID_TITLE_ID,
-		 pat      => qr/^$item_title$/o,
+		 pat      => qr/^$item_title\s*$/o,
 		 required => 1, },
 	       { field    => FID_DUE_DATE,
 		 pat      => $textpat,
@@ -111,7 +111,7 @@ foreach my $i (0 .. (scalar @{$test->{fields}})-1) {
     if ($field->{field} eq FID_ITEM_ID) {
 	$field->{pat} = qr/^$item_diacritic_barcode$/;
     } elsif ($field->{field} eq FID_TITLE_ID) {
-	$field->{pat} = qr/^$item_diacritic_title$/;
+	$field->{pat} = qr/^$item_diacritic_title\s*$/;
     } elsif ($field->{field} eq FID_OWNER) {
 	$field->{pat} = qr/^$item_diacritic_owner$/;
     }
@@ -170,7 +170,7 @@ $test->{fields} = [
 		     pat      => qr/^$item_barcode$/o,
 		     required => 1, },
 		   { field    => FID_TITLE_ID,
-		     pat      => qr/^$item_title$/o,
+		     pat      => qr/^$item_title\s*$/o,
 		     required => 1, },
 		   { field    => FID_DUE_DATE,
 		     pat      => qr/^$/,

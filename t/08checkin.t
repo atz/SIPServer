@@ -28,7 +28,7 @@ my $checkin_test_template = {
 		 pat      => $textpat,
 		 required => 1, },
 	       { field    => FID_TITLE_ID,
-		 pat      => qr/^$item_title$/o,
+		 pat      => qr/^$item_title\s*$/o,
 		 required => 1, }, # not required by the spec.
 	       ],};
 
