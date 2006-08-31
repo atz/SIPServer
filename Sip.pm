@@ -142,9 +142,12 @@ sub boolspace {
 #
 sub read_SIP_packet {
     my $file = shift;
+    my $record;
     local $/ = "\r";
 
-    return readline($file);
+    $record = readline($file);
+    syslog("LOG_INFO", "INPUT MSG: '$record'") if $record;
+    return $record;
 }
 
 #
@@ -168,7 +171,7 @@ sub write_msg {
 	}
 	$msg .= 'AZ';
 	$cksum = checksum($msg);
-	$msg .= sprintf('%4X', $cksum);
+	$msg .= sprintf('%04.4X', $cksum);
     }
 
 
@@ -176,7 +179,7 @@ sub write_msg {
 	print $file "$msg\r";
     } else {
 	print "$msg\r";
-	syslog("LOG_DEBUG", "OUTPUT MSG: '$msg'");
+	syslog("LOG_INFO", "OUTPUT MSG: '$msg'");
     }
 
     $last_response = $msg;
