@@ -7,9 +7,19 @@
 use strict;
 use warnings;
 
-use SIPtest qw($datepat $login_test $sc_status_test);
+use SIPtest qw($datepat $username $password $login_test $sc_status_test);
 
-my @tests = ( $login_test, $sc_status_test );
+my $invalid_uname = { id => 'Invalid username',
+		      msg => "9300CNinvalid$username|CO$password|CPThe floor|",
+		      pat => qr/^940/,
+		      fields => [], };
+
+my $invalid_pwd = { id => 'Invalid username',
+		      msg => "9300CN$username|COinvalid$password|CPThe floor|",
+		      pat => qr/^940/,
+		      fields => [], };
+
+my @tests = ( $invalid_uname, $invalid_pwd, $login_test, $sc_status_test );
 
 SIPtest::run_sip_tests(@tests);
 
