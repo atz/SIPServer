@@ -136,8 +136,8 @@ sub raw_transport {
     };
 
     if ($@) {
-	syslog("LOG_ERR", "raw_transport: LOGIN TIMED OUT: '$@'");
-	die "raw_transport: login timed out, exiting";
+	syslog("LOG_ERR", "raw_transport: LOGIN ERROR: '$@'");
+	die "raw_transport: login error, exiting";
     } elsif (!$self->{account}) {
 	syslog("LOG_ERR", "raw_transport: LOGIN FAILED");
 	die "raw_transport: Login failed, exiting";
@@ -146,10 +146,6 @@ sub raw_transport {
     syslog("LOG_DEBUG", "raw_transport: uname/inst: '%s/%s'",
 	   $self->{account}->{id},
 	   $self->{account}->{institution});
-
-    $inst = $self->{account}->{institution};
-    $self->{institution} = $self->{config}->{institutions}->{$inst};
-    $self->{policy} = $self->{institution}->{policy};
 
     $self->sip_protocol_loop();
 
@@ -231,28 +227,6 @@ sub sip_protocol_loop {
     my $config = $self->{config};
     my $input;
 
-    #
-    # initialize connection to ILS
-    #
-    my $module = $config
-                    ->{institutions}
-		    ->{ $self->{account}->{institution} }
-		    ->{implementation};
-    $module->use;
-
-    if ($@) {
-	syslog("LOG_ERR", "%s: Loading ILS implementation '%s' failed, exiting",
-	       $self->{service}, $self->{account}->{institution});
-	die("ILS initialization failed");
-    }
-
-    $self->{ils} = $module->new($self->{institution}, $self->{account});
-
-    if (!$self->{ils}) {
-	syslog("LOG_ERR", "%s: ILS connection to '%s' failed, exiting",
-	       $self->{service}, $self->{account}->{institution});
-	die("ILS initialization failed");
-    }
     # Now that the terminal has logged in, the first message
     # we recieve must be an SC_STATUS message.  But it might be
     # an SC_REQUEST_RESEND.  So, as long as we keep receiving

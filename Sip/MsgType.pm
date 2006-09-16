@@ -800,6 +800,7 @@ sub handle_login {
     my ($self, $server) = @_;
     my ($uid_algorithm, $pwd_algorithm);
     my ($uid, $pwd);
+    my $inst;
     my $fields;
     my $status = 1;		# Assume it all works
 
@@ -821,13 +822,38 @@ sub handle_login {
 	syslog("LOG_WARNING",
 	       "MsgType::handle_login: Invalid password for login '$uid'");
 	$status = 0;
-    }
-
-    # Store the active account someplace handy for everybody else to find.
-    if ($status) {
+    } else {
+	# Store the active account someplace handy for everybody else to find.
 	$server->{account} = $server->{config}->{accounts}->{$uid};
+	$inst = $server->{account}->{institution};
+	$server->{institution} = $server->{config}->{institutions}->{$inst};
+	$server->{policy} = $server->{institution}->{policy};
+
+
 	syslog("LOG_INFO", "Successful login for '%s' of '%s'",
-	       $server->{account}->{id}, $server->{account}->{institution});
+	       $server->{account}->{id}, $inst);
+	#
+	# initialize connection to ILS
+	#
+	my $module = $server->{config}
+	  ->{institutions}
+	    ->{ $inst }
+	      ->{implementation};
+	$module->use;
+
+	if ($@) {
+	    syslog("LOG_ERR", "%s: Loading ILS implementation '%s' for institution '%s' failed",
+		   $server->{service}, $module, $inst);
+	    die("Failed to load ILS implementation '$module'");
+	}
+
+	$server->{ils} = $module->new($server->{institution}, $server->{account});
+
+	if (!$server->{ils}) {
+	    syslog("LOG_ERR", "%s: ILS connection to '%s' failed",
+		   $server->{service}, $inst);
+	    die("Unable to connect to ILS '$inst'");
+	}
     }
 
     $self->write_msg(LOGIN_RESP . $status);
