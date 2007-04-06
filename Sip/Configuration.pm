@@ -63,15 +63,10 @@ sub find_service {
     my ($self, $sockaddr, $port, $proto) = @_;
     my $portstr;
 
-    if ($sockaddr eq '127.0.0.1') {
-	foreach my $addr ('', '*:', 'localhost:', '127.0.0.1:') {
-	    $portstr = sprintf("%s%s/%s", $addr, $port, $proto);
-	    Sys::Syslog::syslog("LOG_DEBUG", "Configuration::find_service: Trying $portstr");
-	    last if (exists(($self->{listeners})->{$portstr}));
-	}
-    } else {
-	$portstr = sprintf("%s:%s/%s", $sockaddr, $port, $proto);
+    foreach my $addr ('', '*:', "$sockaddr:") {
+	$portstr = sprintf("%s%s/%s", $addr, $port, $proto);
 	Sys::Syslog::syslog("LOG_DEBUG", "Configuration::find_service: Trying $portstr");
+	last if (exists(($self->{listeners})->{$portstr}));
     }
 
     return $self->{listeners}->{$portstr};
