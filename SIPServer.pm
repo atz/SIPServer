@@ -6,6 +6,7 @@ use Exporter;
 use Sys::Syslog qw(syslog);
 use Net::Server::PreFork;
 use IO::Socket::INET;
+use Socket;
 use Data::Dumper;		# For debugging
 require UNIVERSAL::require;
 
@@ -75,14 +76,16 @@ SIPServer->run(@parms);
 sub process_request {
     my $self = shift;
     my $service;
+    my $sockname;
     my ($sockaddr, $port, $proto);
     my $transport;
 
     $self->{config} = $config;
 
-    $sockaddr = $self->{server}->{sockaddr};
-    $port = $self->{server}->{sockport};
-    $proto = $self->{server}->{proto};
+    $sockname = getsockname(STDIN);
+    ($port, $sockaddr) = sockaddr_in($sockname);
+    $sockaddr = inet_ntoa($sockaddr);
+    $proto = $self->{server}->{client}->NS_proto();
 
     $self->{service} = $config->find_service($sockaddr, $port, $proto);
 
