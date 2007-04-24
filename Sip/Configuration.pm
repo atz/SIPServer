@@ -16,7 +16,7 @@ use Sip::Configuration::Account;
 use Sip::Configuration::Service;
 
 my $parser = new XML::Simple( KeyAttr   => { login => '+id',
-					     institution => '+id', 
+					     institution => '+id',
 					     service => '+port' },
 			      GroupTags =>  { listeners => 'service',
 					      accounts => 'login',
@@ -31,14 +31,23 @@ my $parser = new XML::Simple( KeyAttr   => { login => '+id',
 sub new {
     my ($class, $config_file) = @_;
     my $cfg = $parser->XMLin($config_file);
-    
+    my %listeners;
+
     foreach my $acct (values %{$cfg->{accounts}}) {
 	new Sip::Configuration::Account $acct;
     }
 
+    # The key to the listeners hash is the 'port' component of the
+    # configuration, which is of the form '[host]:[port]/proto', and
+    # the 'proto' component could be upper-, lower-, or mixed-cased.
+    # Regularize it here to lower-case, and then do the same below in
+    # find_server() when building the keys to search the hash.
+
     foreach my $service (values %{$cfg->{listeners}}) {
 	new Sip::Configuration::Service $service;
+	$listeners{lc $service->{port}} = $service;
     }
+    $cfg->{listeners} = \%listeners;
 
     foreach my $inst (values %{$cfg->{institutions}}) {
 	new Sip::Configuration::Institution $inst;
@@ -64,7 +73,7 @@ sub find_service {
     my $portstr;
 
     foreach my $addr ('', '*:', "$sockaddr:") {
-	$portstr = sprintf("%s%s/%s", $addr, $port, $proto);
+	$portstr = sprintf("%s%s/%s", $addr, $port, lc $proto);
 	Sys::Syslog::syslog("LOG_DEBUG", "Configuration::find_service: Trying $portstr");
 	last if (exists(($self->{listeners})->{$portstr}));
     }
