@@ -329,30 +329,21 @@ sub _initialize {
 
     $self->{fixed_fields} = [ unpack($proto->{template}, $msg) ];
 
-    for ($fs = $proto->{template_len}; $fs < length($msg); $fs = $fe + 1) {
-	$fn = substr($msg, $fs, 2);
-	$fs += 2;
-	syslog("LOG_DEBUG",
-	       "_initialize: msg: '%s', field_delimiter: '%s', fs: '%s'",
-	       $msg, $field_delimiter, $fs);
-	$fe = index($msg, $field_delimiter, $fs);
-
-	if ($fe == -1) {
-	    syslog("LOG_WARNING", "Unterminated %s field in %s message '%s'",
-		   $fn, $self->{name}, $msg);
-	    $fe = length($msg);
-	}
+    # Skip over the fixed fields and the split the rest of
+    # the message into fields based on the delimiter and parse them
+    foreach my $field (split(quotemeta($field_delimiter), substr($msg, $proto->{template_len}))) {
+	$fn = substr($field, 0, 2);
 
 	if (!exists($self->{fields}->{$fn})) {
 	    syslog("LOG_WARNING",
-		   "Unsupported field '%s' at offset %d in %s message '%s'",
-		   $fn, $fs, $self->{name}, $msg);
+		   "Unsupported field '%s' in %s message '%s'",
+		   $fn, $self->{name}, $msg);
 	} elsif (defined($self->{fields}->{$fn})) {
 	    syslog("LOG_WARNING",
-		   "Duplicate field '%s' at offset %d (previous value '%s') in %s message '%s'",
-		   $fn, $fs, $self->{fields}->{$fn}, $self->{name}, $msg);
+		   "Duplicate field '%s' (previous value '%s') in %s message '%s'",
+		   $fn, $self->{fields}->{$fn}, $self->{name}, $msg);
 	} else {
-	    $self->{fields}->{$fn} = substr($msg, $fs, $fe - $fs);
+	    $self->{fields}->{$fn} = substr($field, 2);
 	}
     }
 
