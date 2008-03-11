@@ -15,7 +15,7 @@ our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
 		    $instid $currency $server $username $password
 		    $user_barcode $user_pin $user_fullname $user_homeaddr
 		    $user_email $user_phone $user_birthday $user_ptype
-		    $user_inet
+		    $user_inet $user_homelib
 		    $item_barcode $item_title $item_owner
 		    $item2_barcode $item2_title $item2_owner
 		    $item_diacritic_barcode $item_diacritic_title
@@ -55,6 +55,7 @@ our $user_phone   = '\(519\) 555 1234';
 our $user_birthday= '19640925';
 our $user_ptype   = 'A';
 our $user_inet    = 'Y';
+our $user_homelib = 'Beacock';
 
 # Valid item barcode and corresponding title
 our $item_barcode = '1565921879';

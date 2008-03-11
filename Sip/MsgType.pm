@@ -959,6 +959,12 @@ sub handle_patron_info {
 	$resp .= maybe_add(FID_EMAIL, $patron->email_addr);
 	$resp .= maybe_add(FID_HOME_PHONE, $patron->home_phone);
 
+	# Extension requested by PINES. Report the home system for
+	# the patron in the 'AQ' field. This is normally the "permanent
+	# location" field for an ITEM, but it's not used in PATRON info.
+	# Apparently TLC systems do this.
+	$resp .= maybe_add(FID_HOME_LIBRARY, $patron->home_library);
+
 	$resp .= summary_info($ils, $patron, $summary, $start, $end);
 
 	$resp .= add_field(FID_VALID_PATRON, 'Y');

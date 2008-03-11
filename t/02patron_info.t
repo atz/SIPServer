@@ -9,7 +9,7 @@ use Sip::Constants qw(:all);
 
 use SIPtest qw($datepat $textpat $instid $currency $user_barcode $user_pin
 	       $user_fullname $user_homeaddr $user_email $user_phone
-	       $user_birthday $user_ptype $user_inet);
+	       $user_birthday $user_ptype $user_inet $user_homelib);
 
 # This is a template test case for the Patron Information
 # message handling.  Because of the large number of fields,
@@ -63,6 +63,9 @@ my $patron_info_test_template = {
 	       { field    => FID_INET_PROFILE,
 		 pat      => qr/^$user_inet$/,
 		 required => 1, },
+	       { field    => FID_HOME_LIBRARY,
+		 pat      => qr/^$user_homelib$/,
+		 required => 1, }, # Required for this test
 	      ], };
 
 my @tests = (
