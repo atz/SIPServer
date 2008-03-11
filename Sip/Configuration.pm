@@ -25,6 +25,7 @@ my $parser = new XML::Simple( KeyAttr   => { login => '+id',
 					     'login',
 					     'institution' ],
 			      ValueAttr =>  { 'error-detect' => 'enabled',
+					     'timeout' => 'value',
 					     'min_servers' => 'value',
 					     'max_servers' => 'value'} );
 
@@ -62,6 +63,12 @@ sub error_detect {
     return $self->{'error-detect'};
 }
 
+sub timeout {
+    my $self = shift;
+
+    return $self->{'timeout'}
+}
+
 sub accounts {
     my $self = shift;
 
@@ -72,6 +79,7 @@ sub find_service {
     my ($self, $sockaddr, $port, $proto) = @_;
     my $portstr;
 
+    $proto = lc($proto);
     foreach my $addr ('', '*:', "$sockaddr:") {
 	$portstr = sprintf("%s%s/%s", $addr, $port, lc $proto);
 	Sys::Syslog::syslog("LOG_DEBUG", "Configuration::find_service: Trying $portstr");

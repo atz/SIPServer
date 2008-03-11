@@ -5,6 +5,7 @@ use warnings;
 use Exporter;
 use Sys::Syslog qw(syslog);
 use Net::Server::PreFork;
+use Net::Server::Proto;
 use IO::Socket::INET;
 use Socket;
 use Data::Dumper;		# For debugging
@@ -82,9 +83,8 @@ sub process_request {
 
     $self->{config} = $config;
 
-    $sockname = getsockname(STDIN);
-    ($port, $sockaddr) = sockaddr_in($sockname);
-    $sockaddr = inet_ntoa($sockaddr);
+    $sockaddr = $self->{server}->{sockaddr};
+    $port = $self->{server}->{sockport};
     $proto = $self->{server}->{client}->NS_proto();
 
     $self->{service} = $config->find_service($sockaddr, $port, $proto);
