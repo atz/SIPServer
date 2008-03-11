@@ -30,6 +30,7 @@ our %patron_db = (
 		      address => '2 Meadowvale Dr. St Thomas, ON',
 		      home_phone => '(519) 555 1234',
 		      email_addr => 'djfiander@hotmail.com',
+		      home_library => 'Beacock',
 		      charge_ok => 1,
 		      renew_ok => 1,
 		      recall_ok => 0,
@@ -376,6 +377,16 @@ sub inet_privileges {
     my $self = shift;
 
     return $self->{inet} ? 'Y' : 'N';
+}
+
+# Extension requested by PINES. Report the home system for
+# the patron in the 'AQ' field. This is normally the "permanent
+# location" field for an ITEM, but it's not used in PATRON info.
+# Apparently TLC systems do this.
+sub home_library {
+    my $self = shift;
+
+    return $self->{home_library}
 }
 
 #
