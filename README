@@ -7,6 +7,7 @@ perl modules to run:
 
      Net::Server - The SIP server is a Net::Server::Prefork server
      XML::LibXML
+	XML::LibXML depends on the C library libxml2
      XML::Parser
      XML::Simple - for parsing the config file
      UNIVERSAL::require - for loading the correct ILS interface module
