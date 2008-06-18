@@ -1138,14 +1138,14 @@ sub handle_item_information {
 	if (($i = scalar @{$item->hold_queue}) > 0) {
 	    $resp .= add_field(FID_HOLD_QUEUE_LEN, $i);
 	}
-	if (($i = $item->due_date) != 0) {
-	    $resp .= add_field(FID_DUE_DATE, Sip::timestamp($i));
+	if (!($i = $item->due_date)) {
+	    $resp .= add_field(FID_DUE_DATE, $i);
 	}
-	if (($i = $item->recall_date) != 0) {
-	    $resp .= add_field(FID_RECALL_DATE, Sip::timestamp($i));
+	if (!($i = $item->recall_date)) {
+	    $resp .= add_field(FID_RECALL_DATE, $i);
 	}
-	if (($i = $item->hold_pickup_date) != 0) {
-	    $resp .= add_field(FID_HOLD_PICKUP_DATE, Sip::timestamp($i));
+	if (!($i = $item->hold_pickup_date)) {
+	    $resp .= add_field(FID_HOLD_PICKUP_DATE, $i);
 	}
 
 	$resp .= maybe_add(FID_SCREEN_MSG, $item->screen_msg);
@@ -1377,7 +1377,7 @@ sub handle_renew {
 	$resp .= add_field(FID_PATRON_ID, $patron->id);
 	$resp .= add_field(FID_ITEM_ID, $item->id);
 	$resp .= add_field(FID_TITLE_ID, $item->title_id);
-	$resp .= add_field(FID_DUE_DATE, Sip::timestamp($item->due_date));
+	$resp .= add_field(FID_DUE_DATE, $item->due_date);
 	if ($ils->supports('security inhibit')) {
 	    $resp .= add_field(FID_SECURITY_INHIBIT,
 			       $status->security_inhibit);
