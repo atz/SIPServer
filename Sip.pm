@@ -176,7 +176,7 @@ sub read_SIP_packet {
     # So, the simplest thing to do is just throw away a leading newline
     # on the input.
     # 
-    $record =~ s/^\012//;
+    $record =~ s/^\012// if $record;
     syslog("LOG_INFO", "INPUT MSG: '$record'") if $record;
     return $record;
 }
