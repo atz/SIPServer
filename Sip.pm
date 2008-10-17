@@ -164,6 +164,19 @@ sub read_SIP_packet {
     local $/ = "\r";
 
     $record = readline($file);
+
+    #
+    # Cen-Tec self-check terminals transmit '\r\n' line terminators.
+    # This is actually very hard to deal with in perl in a reasonable
+    # since every OTHER piece of hardware out there gets the protocol
+    # right.
+    # 
+    # The incorrect line terminator presents as a \r at the end of the
+    # first record, and then a \n at the BEGINNING of the next record.
+    # So, the simplest thing to do is just throw away a leading newline
+    # on the input.
+    # 
+    $record =~ s/^\012//;
     syslog("LOG_INFO", "INPUT MSG: '$record'") if $record;
     return $record;
 }
