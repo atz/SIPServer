@@ -105,7 +105,7 @@ sub process_request {
     $sockaddr = $self->{server}->{sockaddr};
     $port = $self->{server}->{sockport};
     $proto = $self->{server}->{client}->NS_proto();
-
+    syslog('LOG_INFO', "Inbound connection from $sockaddr on port $port and proto $proto");
     $self->{service} = $config->find_service($sockaddr, $port, $proto);
 
     if (!defined($self->{service})) {
