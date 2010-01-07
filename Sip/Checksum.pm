@@ -29,7 +29,7 @@ our @EXPORT_OK = qw(checksum verify_cksum);
 sub checksum {
     my $pkt = shift;
 
-    return (-unpack('%16U*', $pkt) & 0xFFFF);
+    return (-unpack('%16C*', $pkt) & 0xFFFF);
 }
 
 sub verify_cksum {
