@@ -26,6 +26,7 @@ use strict;
 use warnings;
 use English;
 use Exporter;
+use Encode;
 
 use Sys::Syslog qw(syslog);
 use POSIX qw(strftime);
@@ -177,7 +178,7 @@ sub read_SIP_packet {
     # on the input.
     # 
     $record =~ s/^\012// if $record;
-    syslog("LOG_INFO", "INPUT MSG: '$record'") if $record;
+    syslog("LOG_INFO", encode_utf8("INPUT MSG: '$record'")) if $record;
     return $record;
 }
 
@@ -210,7 +211,7 @@ sub write_msg {
 	print $file "$msg\r";
     } else {
 	print "$msg\r";
-	syslog("LOG_INFO", "OUTPUT MSG: '$msg'");
+	syslog("LOG_INFO", encode_utf8("OUTPUT MSG: '$msg'"));
     }
 
     $last_response = $msg;

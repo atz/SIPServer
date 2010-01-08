@@ -28,6 +28,8 @@ package ILS::Item;
 use strict;
 use warnings;
 
+use Encode;
+
 use Sys::Syslog qw(syslog);
 
 use ILS::Transaction;
@@ -48,7 +50,7 @@ our %item_db = (
 				 hold_queue => [],
 		},
 		'660' => {
-				 title => "Harry Potter y el cáliz de fuego ",
+				 title => decode_utf8('Harry Potter y el cáliz de fuego'),
 				 id => '660',
 				 sip_media_type => '001',
 				 magnetic_media => 0,
@@ -71,7 +73,7 @@ sub new {
     bless $self, $type;
 
     syslog("LOG_DEBUG", "new ILS::Item('%s'): found with title '%s'",
-	   $item_id, $self->{title});
+	   $item_id, encode_utf8($self->{title}));
 
     return $self;
 }
@@ -188,7 +190,11 @@ sub hold_queue_position {
 sub due_date {
     my $self = shift;
 
-    return $self->{due_date} || 0;
+    if ($self->{due_date}) {
+        return Sip::timestamp($self->{due_date});
+    } else {
+        return 0;
+    }
 }
 
 sub recall_date {

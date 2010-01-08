@@ -47,6 +47,8 @@ our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
 use Test::More;
 
 use IO::Socket::INET;
+use Encode;
+
 use Sip qw(:all);
 use Sip::Checksum qw(verify_cksum);
 use Sip::Constants qw(:all);
@@ -89,7 +91,7 @@ our $item2_owner   = 'UWOLS';
 
 # An item with a diacritical in the title
 our $item_diacritic_barcode = '660';
-our $item_diacritic_title = 'Harry Potter y el cáliz de fuego';
+our $item_diacritic_title = decode_utf8('Harry Potter y el cáliz de fuego');
 our $item_diacritic_owner = 'UWOLS';
 
 # End configuration
@@ -204,7 +206,7 @@ sub one_msg {
 		return;
 	    }
 
-	    if (exists($fields{$field}) && ($fields{$field} !~ $ftest->{pat})) {
+	    if (exists($fields{$field}) && (decode_utf8($fields{$field}) !~ $ftest->{pat})) {
 
 		fail("$test->{id} field test $field");
 		diag("Field pattern '$ftest->{pat}' for '$field' doesn't match in '$resp'");

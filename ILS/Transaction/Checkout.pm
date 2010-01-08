@@ -26,6 +26,8 @@ use warnings;
 use strict;
 
 use POSIX qw(strftime);
+use Sip::Constants qw(SIP_DATETIME);
+
 
 use ILS;
 use ILS::Transaction;
@@ -49,7 +51,8 @@ sub new {
     }
 
     @{$self}{keys %fields} = values %fields;
-    $self->{'due'} = time() + (60*60*24*14); # two weeks hence
+    $self->{'due'} = strftime(SIP_DATETIME,
+                              localtime(time() + (60*60*24*14))); # two weeks hence
     
     return bless $self, $class;
 }
