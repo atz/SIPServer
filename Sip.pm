@@ -197,6 +197,7 @@ sub write_msg {
     my ($self, $msg, $file) = @_;
     my $cksum;
 
+    $msg = encode_utf8($msg);
     if ($error_detection) {
 	if (defined($self->{seqno})) {
 	    $msg .= 'AY' . $self->{seqno};
@@ -211,7 +212,7 @@ sub write_msg {
 	print $file "$msg\r";
     } else {
 	print "$msg\r";
-	syslog("LOG_INFO", encode_utf8("OUTPUT MSG: '$msg'"));
+	syslog("LOG_INFO", "OUTPUT MSG: '$msg'");
     }
 
     $last_response = $msg;
