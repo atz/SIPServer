@@ -1129,22 +1129,27 @@ sub handle_item_information {
 	$resp .= maybe_add(FID_CURRENT_LOCN, $item->current_location);
 	$resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
 
-	if (($i = $item->fee) != 0) {
+	$i = $item->fee;
+	if ($i != 0) {
 	    $resp .= add_field(FID_CURRENCY, $item->fee_currency);
 	    $resp .= add_field(FID_FEE_AMT, $i);
 	}
 	$resp .= maybe_add(FID_OWNER, $item->owner);
 
-	if (($i = scalar @{$item->hold_queue}) > 0) {
+	$i = scalar @{$item->hold_queue};
+	if ($i > 0) {
 	    $resp .= add_field(FID_HOLD_QUEUE_LEN, $i);
 	}
-	if (!($i = $item->due_date)) {
+	$i = $item->due_date;
+	if ($i) {
 	    $resp .= add_field(FID_DUE_DATE, $i);
 	}
-	if (!($i = $item->recall_date)) {
+	$i = $item->recall_date;
+	if ($i) {
 	    $resp .= add_field(FID_RECALL_DATE, $i);
 	}
-	if (!($i = $item->hold_pickup_date)) {
+	$i = $item->hold_pickup_date;
+	if ($i) {
 	    $resp .= add_field(FID_HOLD_PICKUP_DATE, $i);
 	}
 
