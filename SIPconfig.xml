@@ -1,0 +1,77 @@
+<!--
+#
+# Copyright (C) 2006-2008  Georgia Public Library Service
+# 
+# Author: David J. Fiander
+# 
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of version 2 of the GNU General Public
+# License as published by the Free Software Foundation.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public
+# License along with this program; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA 02111-1307 USA
+
+-->
+<acsconfig xmlns="http://openncip.org/acs-config/1.0/">
+
+  <error-detect enabled="true" />
+
+  <!-- Set Net::Server::PreFork runtime parameters -->
+  <server-params
+           min_servers='1'
+           min_spare_servers='0' />
+  
+  
+  <listeners>
+    <service
+      port="0:8080/tcp"
+      transport="http"
+      protocol="NCIP/1.0" />
+
+    <service
+      port="8023/tcp"
+      transport="telnet"
+      protocol="SIP/1.00"
+      timeout="60" />
+
+    <service
+      port="127.0.0.1:6001/tcp"
+      transport="RAW" 
+      protocol="SIP/2.00"
+      timeout="60" />
+  </listeners>
+
+  <accounts>
+      <login id="scclient" password="clientpwd" institution="UWOLS">
+      </login>
+      <login id="scclient-2" password="clientpwd-2"
+             institution="UWOLS" />
+      <login id="lpl-sc" password="1234" institution="LPL" />
+      <login id="lpl-sc-beacock" password="xyzzy"
+             delimiter="|" error-detect="enabled" institution="LPL" />
+  </accounts>
+
+<!-- Institution tags will hold stuff used to interface to -->
+<!-- the rest of the ILS: authentication parameters, etc.  I -->
+<!-- don't know what yet, so it'll just be blank.  But there -->
+<!-- needs to be one institution stanza for each institution -->
+<!-- named in the accounts above. -->
+<institutions>
+    <institution id="UWOLS" implementation="ILS" parms="">
+          <policy checkin="true" renewal="false"
+	  	  status_update="false" offline="false"
+		  timeout="600"
+	  	  retries="3" />
+    </institution>
+
+    <institution id="LPL" implementation="ILS">
+    </institution>
+</institutions>
+</acsconfig>
