@@ -65,8 +65,20 @@ foreach my $svc (keys %{$config->{listeners}}) {
 #
 # Logging
 #
-push @parms, "log_file=Sys::Syslog", "syslog_ident=acs-server",
-  "syslog_facility=" . LOG_SIP;
+# Log lines look like this:
+# Jun 16 21:21:31 server08 steve_sip: Sip::MsgType::_initialize('Login', ...)
+# [  TIMESTAMP  ] [ HOST ] [ IDENT ]: Message...
+#
+# The IDENT is determined by $ENV{SIP_LOG_IDENT}, if present.
+# Otherwise it is "_sip" appended to $USER, if present, or "acs-server" as a fallback.
+#
+
+my $syslog_ident = $ENV{SIP_LOG_IDENT} || ($ENV{USER} ? $ENV{USER} . "_sip" : 'acs-server');
+
+push @parms,
+    "log_file=Sys::Syslog",
+    "syslog_ident=$syslog_ident",
+    "syslog_facility=" . LOG_SIP;
 
 #
 # Server Management: set parameters for the Net::Server::PreFork
