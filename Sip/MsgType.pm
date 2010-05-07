@@ -534,7 +534,7 @@ sub handle_checkout {
     if ($no_block eq 'Y') {
 	# Off-line transactions need to be recorded, but there's
 	# not a lot we can do about it
-	syslog("LOG_WARN", "received no-block checkout from terminal '%s'",
+	syslog("LOG_WARNING", "received no-block checkout from terminal '%s'",
 	       $account->{id});
 
 	$status = $ils->checkout_no_block($patron_id, $item_id,
@@ -651,7 +651,7 @@ sub handle_checkin {
 
     if ($no_block eq 'Y') {
 	# Off-line transactions, ick.
-	syslog("LOG_WARN", "received no-block checkin from terminal '%s'",
+	syslog("LOG_WARNING", "received no-block checkin from terminal '%s'",
 	       $account->{id});
 	$status = $ils->checkin_no_block($item_id, $trans_date,
 					 $return_date, $item_props, $cancel);
@@ -767,10 +767,10 @@ sub handle_sc_status {
     }
 
     if ($status == SC_STATUS_PAPER) {
-	syslog("LOG_WARN", "Self-Check unit '%s@%s' out of paper",
+	syslog("LOG_WARNING", "Self-Check unit '%s@%s' out of paper",
 	       $self->{account}->{id}, $self->{account}->{institution});
     } elsif ($status == SC_STATUS_SHUTDOWN) {
-	syslog("LOG_WARN", "Self-Check unit '%s@%s' shutting down",
+	syslog("LOG_WARNING", "Self-Check unit '%s@%s' shutting down",
 	       $self->{account}->{id}, $self->{account}->{institution});
     }
 
