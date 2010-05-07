@@ -88,7 +88,7 @@ push @parms,
 #
 if (defined($config->{'server-params'})) {
     while (my ($key, $val) = each %{$config->{'server-params'}}) {
-	push @parms, $key . '=' . $val;
+        push @parms, $key . '=' . $val;
     }
 }
 
@@ -115,23 +115,25 @@ sub process_request {
     $self->{config} = $config;
 
     $sockaddr = $self->{server}->{sockaddr};
-    $port = $self->{server}->{sockport};
-    $proto = $self->{server}->{client}->NS_proto();
+    $port     = $self->{server}->{sockport};
+    $proto    = $self->{server}->{client}->NS_proto();
     syslog('LOG_INFO', "Inbound connection from $sockaddr on port $port and proto $proto");
-    $self->{service} = $config->find_service($sockaddr, $port, $proto);
 
-    if (!defined($self->{service})) {
-	syslog("LOG_ERR", "process_request: Unknown recognized server connection: %s:%s/%s", $sockaddr, $port, $proto);
-	die "process_request: Bad server connection";
+    $self->{service} = $config->find_service( $sockaddr, $port, $proto );
+
+    if (! defined($self->{service})) {
+        syslog( "LOG_ERR", "process_request: Unknown recognized server connection: %s:%s/%s",
+            $sockaddr, $port, $proto );
+        die "process_request: Bad server connection";
     }
 
-    $transport = $transports{$self->{service}->{transport}};
+    $transport = $transports{ $self->{service}->{transport} };
 
-    if (!defined($transport)) {
-	syslog("LOG_WARN", "Unknown transport '%s', dropping", $service->{transport});
-	return;
+    if ( !defined($transport) ) {
+        syslog("LOG_WARNING", "Unknown transport '%s', dropping", $service->{transport});
+        return;
     } else {
-	&$transport($self);
+        &$transport($self);
     }
 }
 
@@ -149,37 +151,35 @@ sub raw_transport {
     my $inst;
 
     eval {
-	local $SIG{ALRM} = sub { die "alarm\n"; };
-	syslog("LOG_DEBUG", "raw_transport: timeout is %d",
-	       $service->{timeout});
-	while ($strikes--) {
-	    alarm $service->{timeout};
-	    $input = Sip::read_SIP_packet(*STDIN);
-	    alarm 0;
+        local $SIG{ALRM} = sub { die "raw_transport Timed Out!\n"; };
+        syslog("LOG_DEBUG", "raw_transport: timeout is %d", $service->{timeout});
 
-	    if (!$input) {
-		# EOF on the socket
-		syslog("LOG_INFO", "raw_transport: shutting down: EOF during login");
-		return;
-	    }
+    while ($strikes--) {
+        alarm $service->{timeout};
+        $input = Sip::read_SIP_packet(*STDIN);
+        alarm 0;
 
-	    $input =~ s/[\r\n]+$//sm;	# Strip off trailing line terminator
-
-	    last if Sip::MsgType::handle($input, $self, LOGIN);
-	}
+        if (!$input) {
+            # EOF on the socket
+            syslog("LOG_INFO", "raw_transport: shutting down: EOF during login");
+            return;
+        }
+        $input =~ s/[\r\n]+$//sm;	# Strip off trailing line terminator
+        last if Sip::MsgType::handle($input, $self, LOGIN);
+    }
     };
 
     if ($@) {
-	syslog("LOG_ERR", "raw_transport: LOGIN ERROR: '$@'");
-	die "raw_transport: login error, exiting";
+        syslog("LOG_ERR", "raw_transport: LOGIN ERROR: '$@'");
+        die "raw_transport: login error (timeout? $@), exiting";
     } elsif (!$self->{account}) {
-	syslog("LOG_ERR", "raw_transport: LOGIN FAILED");
-	die "raw_transport: Login failed, exiting";
+        syslog("LOG_ERR", "raw_transport: LOGIN FAILED");
+        die "raw_transport: Login failed (no account), exiting";
     }
 
     syslog("LOG_DEBUG", "raw_transport: uname/inst: '%s/%s'",
-	   $self->{account}->{id},
-	   $self->{account}->{institution});
+        $self->{account}->{id},
+        $self->{account}->{institution});
 
     $self->sip_protocol_loop();
 
@@ -193,54 +193,52 @@ sub telnet_transport {
     my $account = undef;
     my $input;
     my $config = $self->{config};
+    my $timeout = $self->{service}->{timeout} || $config->{timeout} || 0;
+    syslog("LOG_DEBUG", "telnet_transport: timeout is %s", $timeout);
 
     # Until the terminal has logged in, we don't trust it
     # so use a timeout to protect ourselves from hanging.
     eval {
-	local $SIG{ALRM} = sub { die "alarm\n"; };
-	local $|;
-	my $timeout = 0;
+    local $SIG{ALRM} = sub { die "telnet_transport: Timed Out ($timeout seconds)!\n";; };
+    local $| = 1;			# Unbuffered output
 
-	$| = 1;			# Unbuffered output
-	$timeout = $config->{timeout} if (exists($config->{timeout}));
+    while ($strikes--) {
+        print "login: ";
+        alarm $timeout;
+        $uid = <STDIN>;
+        alarm 0;
 
-	while ($strikes--) {
-	    print "login: ";
-	    alarm $timeout;
-	    $uid = <STDIN>;
-	    alarm 0;
+        print "password: ";
+        alarm $timeout;
+        $pwd = <STDIN>;
+        alarm 0;
 
-	    print "password: ";
-	    alarm $timeout;
-	    $pwd = <STDIN>;
-	    alarm 0;
+        $uid =~ s/[\r\n]+$//;
+        $pwd =~ s/[\r\n]+$//;
 
-	    $uid =~ s/[\r\n]+$//;
-	    $pwd =~ s/[\r\n]+$//;
-
-	    if (exists($config->{accounts}->{$uid})
-		&& ($pwd eq $config->{accounts}->{$uid}->password())) {
-		$account = $config->{accounts}->{$uid};
-		last;
-	    } else {
-		syslog("LOG_WARNING", "Invalid login attempt: '%s'", $uid);
-		print("Invalid login\n");
-	    }
-	}
+        if (exists($config->{accounts}->{$uid})
+        && ($pwd eq $config->{accounts}->{$uid}->password())) {
+            $account = $config->{accounts}->{$uid};
+            last;
+        } else {
+            syslog("LOG_WARNING", "Invalid login attempt: '%s'", $uid);
+            print("Invalid login\n");
+        }
+    }
     }; # End of eval
 
     if ($@) {
-	syslog("LOG_ERR", "telnet_transport: Login timed out");
-	die "Telnet Login Timed out";
+        syslog("LOG_ERR", "telnet_transport: Login timed out");
+        die "Telnet Login Timed out";
     } elsif (!defined($account)) {
-	syslog("LOG_ERR", "telnet_transport: Login Failed");
-	die "Login Failure";
+        syslog("LOG_ERR", "telnet_transport: Login Failed");
+        die "Login Failure";
     } else {
-	print "Login OK.  Initiating SIP\n";
+        print "Login OK.  Initiating SIP\n";
     }
 
     $self->{account} = $account;
-
+    syslog("LOG_DEBUG", "telnet_transport: uname/inst: '%s/%s'", $account->{id}, $account->{institution});
     $self->sip_protocol_loop();
     syslog("LOG_INFO", "telnet_transport: shutting down");
 }
@@ -258,7 +256,7 @@ sub sip_protocol_loop {
     my $self = shift;
     my $expect;
     my $service = $self->{service};
-    my $config = $self->{config};
+    my $config  = $self->{config};
     my $input;
 
     # Now that the terminal has logged in, the first message
@@ -277,28 +275,23 @@ sub sip_protocol_loop {
     #$expect = SC_STATUS;
     $expect = '';
 
-    while ($input = Sip::read_SIP_packet(*STDIN)) {
-	my $status;
+    while ( $input = Sip::read_SIP_packet(*STDIN) ) {
+        $input =~ s/[\r\n]+$//sm;    # Strip off any trailing line ends
 
-	$input =~ s/[\r\n]+$//sm;	# Strip off any trailing line ends
+        my $status = Sip::MsgType::handle($input, $self, $expect);
+        next if $status eq REQUEST_ACS_RESEND;
 
-	$status = Sip::MsgType::handle($input, $self, $expect);
-	next if $status eq REQUEST_ACS_RESEND;
+        if (!$status) {
+            syslog("LOG_ERR", "raw_transport: failed to handle %s", substr($input,0,2));
+            die "sip_protocol_loop: failed Sip::MsgType::handle('$input', $self, '$expect')";
+        }
+        elsif ($expect && ($status ne $expect)) {
+            # We received a non-"RESEND" that wasn't what we were expecting.
+            syslog("LOG_ERR", "raw_transport: expected %s, received %s, exiting", $expect, $input);
+            die "sip_protocol_loop: exiting: expected '$expect', received '$status'";
+        }
 
-	if (!$status) {
-	    syslog("LOG_ERR", "raw_transport: failed to handle %s",
-		   substr($input, 0, 2));
-	    die "raw_transport: dying";
-	} elsif ($expect && ($status ne $expect)) {
-	    # We received a non-"RESEND" that wasn't what we were
-	    # expecting.
-	    syslog("LOG_ERR",
-		   "raw_transport: expected %s, received %s, exiting",
-		   $expect, $input);
-	    die "raw_transport: exiting: expected '$expect', received '$status'";
-	}
-	# We successfully received and processed what we were expecting
-	# to receive
-	$expect = '';
+        # We successfully received and processed what we were expecting
+        $expect = '';
     }
 }
