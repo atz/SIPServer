@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 #
 # Copyright (C) 2006-2008  Georgia Public Library Service
 # 
