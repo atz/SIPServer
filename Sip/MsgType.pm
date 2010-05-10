@@ -1533,7 +1533,7 @@ sub send_acs_status {
     } elsif ($protocol_version == 2) {
 	$msg .= '2.00';
     } else {
-	syslog("LOG_ERROR",
+	syslog("LOG_ERR",
 	       'Bad setting for $protocol_version, "%s" in send_acs_status',
 	       $protocol_version);
 	$msg .= '1.00';
@@ -1554,7 +1554,7 @@ sub send_acs_status {
 	    }
 	}
 	if (length($supported_msgs) < 16) {
-	    syslog("LOG_ERROR", 'send_acs_status: supported messages "%s" too short', $supported_msgs);
+	    syslog("LOG_ERR", 'send_acs_status: supported messages "%s" too short', $supported_msgs);
 	}
 	$msg .= add_field(FID_SUPPORTED_MSGS, $supported_msgs);
     }
