@@ -637,10 +637,10 @@ sub handle_checkin {
     $fields = $self->{fields};
 
     $current_loc = $fields->{(FID_CURRENT_LOCN)};
-    $inst_id = $fields->{(FID_INST_ID)};
-    $item_id = $fields->{(FID_ITEM_ID)};
-    $item_props = $fields->{(FID_ITEM_PROPS)};
-    $cancel = $fields->{(FID_CANCEL)};
+    $inst_id     = $fields->{(FID_INST_ID)     };
+    $item_id     = $fields->{(FID_ITEM_ID)     };
+    $item_props  = $fields->{(FID_ITEM_PROPS)  };
+    $cancel      = $fields->{(FID_CANCEL)      };
 
     $ils->check_inst_id($inst_id, "handle_checkin");
 
@@ -656,7 +656,7 @@ sub handle_checkin {
     }
 
     $patron = $status->patron;
-    $item = $status->item;
+    $item   = $status->item;
 
     $resp .= $status->ok ? '1' : '0';
     $resp .= $status->resensitize ? 'Y' : 'N';
@@ -678,14 +678,19 @@ sub handle_checkin {
     }
 
     if ($protocol_version >= 2) {
-	$resp .= maybe_add(FID_SORT_BIN, $status->sort_bin);
-	if ($patron) {
-	    $resp .= add_field(FID_PATRON_ID, $patron->id);
-	}
-	if ($item) {
-	    $resp .= maybe_add(FID_MEDIA_TYPE, $item->sip_media_type);
-	    $resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
-	}
+        $resp .= maybe_add(FID_SORT_BIN, $status->sort_bin);
+        if ($patron) {
+            $resp .= add_field(FID_PATRON_ID, $patron->id);
+        }
+        if ($item) {
+            $resp .= maybe_add(FID_MEDIA_TYPE,           $item->sip_media_type     );
+            $resp .= maybe_add(FID_ITEM_PROPS,           $item->sip_item_properties);
+            $resp .= maybe_add(FID_COLLECTION_CODE,      $item->collection_code    );
+            $resp .= maybe_add(FID_CALL_NUMBER,          $item->call_number        );
+            $resp .= maybe_add(FID_DESTINATION_LOCATION, $item->destination_loc    );
+            $resp .= maybe_add(FID_HOLD_PATRON_ID,       $item->hold_patron_bcode  );
+            $resp .= maybe_add(FID_HOLD_PATRON_NAME,     $item->hold_patron_name   );
+        }
     }
 
     $resp .= maybe_add(FID_ALERT_TYPE, $status->alert_type) if $status->alert;
@@ -709,10 +714,10 @@ sub handle_block_patron {
 
     ($card_retained, $trans_date) = @{$self->{fixed_fields}};
     $fields = $self->{fields};
-    $inst_id = $fields->{(FID_INST_ID)};
+    $inst_id          = $fields->{(FID_INST_ID)};
     $blocked_card_msg = $fields->{(FID_BLOCKED_CARD_MSG)};
-    $patron_id = $fields->{(FID_PATRON_ID)};
-    $terminal_pwd = $fields->{(FID_TERMINAL_PWD)};
+    $patron_id        = $fields->{(FID_PATRON_ID)};
+    $terminal_pwd     = $fields->{(FID_TERMINAL_PWD)};
 
     # Terminal passwords are different from account login
     # passwords, but I have no idea what to do with them.  So,
