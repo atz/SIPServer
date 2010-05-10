@@ -456,13 +456,8 @@ sub build_patron_status {
 	$resp .= add_field(FID_PATRON_ID, $patron->id);
 	if ($protocol_version >= 2) {
 	    $resp .= add_field(FID_VALID_PATRON, 'Y');
-	    # If the patron password field doesn't exist, then
-	    # we can't report that the password was valid, now can
-	    # we?  But if it does exist, then we know it's valid.
-	    if (defined($patron_pwd)) {
-		$resp .= add_field(FID_VALID_PATRON_PWD,
-				   sipbool($patron->check_password($patron_pwd)));
-	    }
+	    # Patron password is a required field.
+		$resp .= add_field(FID_VALID_PATRON_PWD, sipbool($patron->check_password($patron_pwd)));
 	    $resp .= maybe_add(FID_CURRENCY, $patron->currency);
 	    $resp .= maybe_add(FID_FEE_AMT, $patron->fee_amount);
 	}
@@ -693,6 +688,7 @@ sub handle_checkin {
 	}
     }
 
+    $resp .= maybe_add(FID_ALERT_TYPE, $status->alert_type) if $status->alert;
     $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
     $resp .= maybe_add(FID_PRINT_LINE, $status->print_line);
 
