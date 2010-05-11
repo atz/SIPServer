@@ -28,7 +28,6 @@ our @EXPORT_OK = qw(checksum verify_cksum);
 
 sub checksum {
     my $pkt = shift;
-
     return (-unpack('%16C*', $pkt) & 0xFFFF);
 }
 
@@ -49,10 +48,8 @@ sub verify_cksum {
     return (($cksum + $shortsum) & 0xFFFF) == 0;
 }
 
-{
-    no warnings qw(once);
-    eval join('',<main::DATA>) || die $@ unless caller();
-}
+1;
+
 __END__
 
 #
@@ -70,5 +67,3 @@ while (<>) {
     chomp;
     test($_);
 }
-
-1;
