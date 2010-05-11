@@ -107,25 +107,22 @@ sub find_service {
     return $self->{listeners}->{$portstr};
 }
 
-#
-# Testing
-#
-
-
-{
-    no warnings qw(once);
-    eval join('',<main::DATA>) || die $@ unless caller();
-}
-
 1;
 __END__
 
-    my $config = new Sip::Configuration $ARGV[0];
+=head1 NAME
 
+Sip::Configuration - abstraction/accessor for SIP configs
+
+=head1 SYNOPSIS
+
+use Sip::Configuration;
+my $config = Sip::Configuration->new($ARGV[0]);
 
 foreach my $acct ($config->accounts) {
-    print "Found account '", $acct->name, "', part of '"
+    print "Found account: '", $acct->id, "', part of '";
     print $acct->institution, "'\n";
 }
 
-1;
+=cut
+
