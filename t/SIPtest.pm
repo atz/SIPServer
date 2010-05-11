@@ -170,21 +170,24 @@ sub one_msg {
     # If reading or writing fails, then the server's dead,
     # so there's no point in continuing.
     if (!write_msg({seqno => $seqno}, $test->{msg}, $sock)) {
-	BAIL_OUT("Write failure in $test->{id}");
+        BAIL_OUT("Write failure in $test->{id}");
     } elsif (!($resp = <$sock>)) {
-	BAIL_OUT("Read failure in $test->{id}");
+        BAIL_OUT("Read failure in $test->{id}");
     }
 
     chomp($resp);
+    $resp =~ tr/\cM//d;
+    $resp =~ s/\015?\012$//;
+    chomp($resp);
 
     if (!verify_cksum($resp)) {
-	fail("checksum $test->{id}");
-	return;
+        fail("checksum $test->{id}");
+        return;
     }
     if ($resp !~ $test->{pat}) {
-	fail("match leader $test->{id}");
-	diag("Response '$resp' doesn't match pattern '$test->{pat}'");
-	return;
+        fail("match leader $test->{id}");
+        diag("Response '$resp' doesn't match pattern '$test->{pat}'");
+        return;
     }
 
     # Split the tagged fields of the response into (name, value)
@@ -195,45 +198,43 @@ sub one_msg {
 #    print STDERR Dumper($test);
 #    print STDERR Dumper(\%fields);
     if (!defined($test->{fields})) {
-	diag("TODO: $test->{id} field tests not written yet");
+        diag("TODO: $test->{id} field tests not written yet");
     } else {
-	# If there are no tagged fields, then 'fields' should be an
-	# empty list which will automatically skip this loop
-	foreach my $ftest (@{$test->{fields}}) {
-	    my $field = $ftest->{field};
+        # If there are no tagged fields, then 'fields' should be an
+        # empty list which will automatically skip this loop
+        foreach my $ftest (@{$test->{fields}}) {
+            my $field = $ftest->{field};
 
-	    if ($ftest->{required} && !exists($fields{$field})) {
-		fail("$test->{id} required field '$field' exists in '$resp'");
-		return;
-	    }
+            if ($ftest->{required} && !exists($fields{$field})) {
+                fail("$test->{id}: required field '$field' not found in '$resp'");
+                return;
+            }
 
-	    if (exists($fields{$field}) && (decode_utf8($fields{$field}) !~ $ftest->{pat})) {
-
-		fail("$test->{id} field test $field");
-		diag("Field pattern '$ftest->{pat}' for '$field' doesn't match in '$resp'");
-		return;
-	    }
-	}
+            if (exists($fields{$field}) && (decode_utf8($fields{$field}) !~ $ftest->{pat})) {
+                fail("$test->{id} field test $field");
+                diag("Field '$field' pattern '$ftest->{pat}' fails to match value '$fields{$field}' in message '$resp'");
+                return;
+            }
+        }
     }
     pass("$test->{id}");
     return;
 }
 
 sub run_sip_tests {
-    my ($sock, $seqno);
-
     $Sip::error_detection = 1;
     $/ = "\r";
 
-    $sock = new IO::Socket::INET(PeerAddr => $server,
-				 Type     => SOCK_STREAM);
+    my $sock = IO::Socket::INET->new(
+        PeerAddr => $server,
+        Type     => SOCK_STREAM
+    );
 
     BAIL_OUT('failed to create connection to server') unless $sock;
 
-    $seqno = 1;
-
     plan tests => scalar(@_);
 
+    my $seqno = 1;
     foreach my $test (@_) {
         # print STDERR "Test $seqno:" . Dumper($test);
         one_msg($sock, $test, $seqno++);
