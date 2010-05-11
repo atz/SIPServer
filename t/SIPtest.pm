@@ -24,6 +24,7 @@ use strict;
 use warnings;
 
 use Exporter;
+use Data::Dumper;
 
 our @ISA = qw(Exporter);
 
@@ -218,12 +219,6 @@ sub one_msg {
     return;
 }
 
-#
-# _count_tests: Count the number of tests in a test array
-sub _count_tests {
-    return scalar @_;
-}
-
 sub run_sip_tests {
     my ($sock, $seqno);
 
@@ -237,11 +232,12 @@ sub run_sip_tests {
 
     $seqno = 1;
 
-    plan tests => _count_tests(@_);
+    plan tests => scalar(@_);
 
     foreach my $test (@_) {
-	one_msg($sock, $test, $seqno++);
-	$seqno %= 10;		# sequence number is one digit
+        # print STDERR "Test $seqno:" . Dumper($test);
+        one_msg($sock, $test, $seqno++);
+        $seqno %= 10;		# sequence number is one digit
     }
 }
 
