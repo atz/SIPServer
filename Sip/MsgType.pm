@@ -327,17 +327,17 @@ sub _initialize {
     my ($fs, $fn, $fe);
     my $proto = $control_block->{protocol}->{$protocol_version};
 
-    $self->{name} = $control_block->{name};
+    $self->{name}    = $control_block->{name};
     $self->{handler} = $control_block->{handler};
 
     $self->{fields} = {};
     $self->{fixed_fields} = [];
 
-    syslog("LOG_DEBUG", "Sip::MsgType:_initialize('%s', '%s...')",
-	   $self->{name}, substr($msg, 0, 20));
+    syslog("LOG_DEBUG", "Sip::MsgType::_initialize('%s', '%s...')", $self->{name}, substr($msg,0,20));
+
 
     foreach my $field (@{$proto->{fields}}) {
-	$self->{fields}->{$field} = undef;
+        $self->{fields}->{$field} = undef;
     }
 
     syslog("LOG_DEBUG",
