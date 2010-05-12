@@ -31,8 +31,9 @@ my $pass = 'sip_01';
 my $inst = 'CONS';
 
 my @input = (
-    "9300CN$user|CO$pass|CP$inst|",
-    '9910302.00',
+   "9300CN$user|CO$pass|CP$inst|",
+   '9910302.00',
+    "1720060110    215612AO$inst|AB858115052035|",
 );
 
 if ($server =~ /:8023$/) {
@@ -40,6 +41,7 @@ if ($server =~ /:8023$/) {
     do_the_write_thing($user);
     read_it(1);
     do_the_write_thing($pass);
+    read_it();
 }
 
 print scalar(@input), " lines of input\n";
@@ -82,6 +84,7 @@ sub read_it {
     my $resp = <$sock>;
     alarm 0;
     defined($resp) or die "No response from server $server $@";
+    $resp =~ s/^\s*//;
     print "RX: $resp\n";
 }
 
