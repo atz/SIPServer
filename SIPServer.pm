@@ -26,7 +26,7 @@ use Sys::Syslog qw(syslog);
 use Net::Server::PreFork;
 use Net::Server::Proto;
 use IO::Socket::INET;
-use Socket;
+use Socket qw(:crlf);
 use Data::Dumper;		# For debugging
 require UNIVERSAL::require;
 
@@ -222,7 +222,7 @@ sub telnet_transport {
             last;
         } else {
             syslog("LOG_WARNING", "Invalid login attempt: '%s'", $uid);
-            print("Invalid login\n");
+            print("Invalid login$CRLF");
         }
     }
     }; # End of eval
@@ -234,7 +234,7 @@ sub telnet_transport {
         syslog("LOG_ERR", "telnet_transport: Login Failed");
         die "Login Failure";
     } else {
-        print "Login OK.  Initiating SIP\n";
+        print "Login OK.  Initiating SIP$CRLF";
     }
 
     $self->{account} = $account;
