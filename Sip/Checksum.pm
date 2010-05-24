@@ -22,13 +22,63 @@ package Sip::Checksum;
 use Exporter;
 use strict;
 use warnings;
+use integer;    # important
 
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(checksum verify_cksum);
+our $debug = 0;
+
+sub debug_print {
+    my $label = shift;
+    my $var   = shift;
+    printf STDERR "# %16s: %016s %4.4s %6s\n",
+        $label,
+           substr(sprintf("%b",   $var), -16),
+        uc substr(sprintf("%4.4x",$var),  -4),
+        $var;
+}
+
+sub debug_split_print {
+    my $line = shift;
+    my $total = 0;
+    my (@row, @rows);
+    foreach(split('', $line)) {
+        $total += ord($_);
+        push @row, $_;
+        if (scalar(@row) == 10) {
+            push @rows, [@row];
+            @row = ();
+        }
+    }
+    scalar(@row) and push @rows, \@row;
+    foreach (@rows) {
+        my $subtotal = 0;
+        print map {"   $_ "} @$_;
+        printf "\n%-50s", join '', map {sprintf " %3d ", $_} map {$subtotal += ord($_); ord($_)} @$_;
+        printf "= %4d\n\n", $subtotal;
+    }
+    printf "%56d\n", $total;
+    return $total;
+}
+
 
 sub checksum {
-    my $pkt = shift;
-    return (-unpack('%16C*', $pkt) & 0xFFFF);
+    my $pkt   = shift;
+    # my $u   = unpack('%16U*', $pkt);
+    my $u     = unpack('%U*', $pkt);
+    my $check = uc substr sprintf("%x", ~$u+1), -4;
+    if ($debug) {
+        my $total = debug_split_print($pkt);
+        $total == $u or warn "Internal error: mismatch between $total and $u";
+        printf STDERR "# checksum('$pkt')\n# %34s  HEX  DECIMAL\n", 'BINARY';
+        debug_print("ascii sum",      $u  );
+        debug_print("binary invert", ~$u  );
+        debug_print("add one",       ~$u+1);
+        printf STDERR "# %39s\n", $check;
+    }
+
+    return $check;
+    # return (-unpack('%16U*', $pkt) & 0xFFFF);
 }
 
 sub verify_cksum {
