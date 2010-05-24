@@ -162,6 +162,8 @@ our $sc_status_test = { id => 'SC status',
 				   ],
 			};
 
+our $debug = 1;
+
 sub one_msg {
     my ($sock, $test, $seqno) = @_;
     my $resp;
@@ -169,11 +171,13 @@ sub one_msg {
 
     # If reading or writing fails, then the server's dead,
     # so there's no point in continuing.
+    $debug and note("Sending message");
     if (!write_msg({seqno => $seqno}, $test->{msg}, $sock)) {
         BAIL_OUT("Write failure in $test->{id}");
     } elsif (!($resp = <$sock>)) {
         BAIL_OUT("Read failure in $test->{id}");
     }
+    $debug and note("Processing response");
 
     chomp($resp);
     $resp =~ tr/\cM//d;
@@ -224,6 +228,7 @@ sub one_msg {
 sub run_sip_tests {
     $Sip::error_detection = 1;
     $/ = "\r";
+    # $/ = "\015\012";    # must use correct record separator
 
     my $sock = IO::Socket::INET->new(
         PeerAddr => $server,
@@ -233,7 +238,6 @@ sub run_sip_tests {
     BAIL_OUT('failed to create connection to server') unless $sock;
 
     plan tests => scalar(@_);
-
     my $seqno = 1;
     foreach my $test (@_) {
         # print STDERR "Test $seqno:" . Dumper($test);
