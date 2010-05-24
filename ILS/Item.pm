@@ -80,19 +80,14 @@ sub new {
 
 sub magnetic {
     my $self = shift;
-
     return $self->{magnetic_media};
 }
-
 sub sip_media_type {
     my $self = shift;
-
     return $self->{sip_media_type};
 }
-
 sub sip_item_properties {
     my $self = shift;
-
     return $self->{sip_item_properties};
 }
 
@@ -109,25 +104,18 @@ sub status_update {
     
 sub id {
     my $self = shift;
-
     return $self->{id};
 }
-
 sub title_id {
     my $self = shift;
-
     return $self->{title};
 }
-
 sub permanent_location {
     my $self = shift;
-
     return $self->{permanent_location} || '';
 }
-
 sub current_location {
     my $self = shift;
-
     return $self->{current_location} || '';
 }
 
@@ -153,25 +141,21 @@ sub sip_fee_type {
 
 sub fee {
     my $self = shift;
-
     return $self->{fee} || 0;
 }
 
 sub fee_currency {
     my $self = shift;
-
     return $self->{currency} || 'CAD';
 }
 
 sub owner {
     my $self = shift;
-
     return 'UWOLS';
 }
 
 sub hold_queue {
     my $self = shift;
-
     return $self->{hold_queue};
 }
 
@@ -199,25 +183,18 @@ sub due_date {
 
 sub recall_date {
     my $self = shift;
-
     return $self->{recall_date} || 0;
 }
-
 sub hold_pickup_date {
     my $self = shift;
-
     return $self->{hold_pickup_date} || 0;
 }
-
 sub screen_msg {
     my $self = shift;
-
     return $self->{screen_msg} || '';
 }
-
 sub print_line {
      my $self = shift;
-
      return $self->{print_line} || '';
 }
 
