@@ -1,4 +1,4 @@
-#
+#!/usr/bin/python
 # Copyright (C) 2006-2008  Georgia Public Library Service
 # 
 # Author: David J. Fiander
