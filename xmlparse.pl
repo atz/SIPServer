@@ -45,4 +45,5 @@ my $parser = new XML::Simple( KeyAttr   => { login => '+id',
 
 my $ref = $parser->XMLin($ARGV[0]);
 
+$Data::Dumper::Indent = 1;
 print Dumper($ref); 
