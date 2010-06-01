@@ -43,14 +43,15 @@ my $patron_disable_template = {
     msg => "01N20060102    084238AO$instid|ALHe's a jerk|AA$user_barcode|",
     # response to block patron is a patron status message
     pat => qr/^24Y{4}[ Y]{10}000$datepat/o,
-    fields => [], };
+    fields => [],
+};
 
 my $checkin_template = {
-			id => 'Checkout: cleanup: check in item',
-			msg => "09N20050102    08423620060113    084235APUnder the bed|AO$instid|AB$item_barcode|ACterminal password|",
-			pat => qr/^101YNN$datepat/o,
-			fields => [],
-		       };
+    id => 'Checkout: cleanup: check in item',
+    msg => "09N20050102    08423620060113    084235APUnder the bed|AO$instid|AB$item_barcode|ACterminal password|",
+    pat => qr/^101YNN$datepat/o,
+    fields => [],
+};
 
 my $checkout_test_template = {
     id => 'Checkout: valid item, valid patron',
