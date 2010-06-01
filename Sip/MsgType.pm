@@ -731,12 +731,13 @@ sub handle_block_patron {
     # we'll just say, "Unspecified", as per the spec.  Let the
     # terminal default to something that, one hopes, will be
     # intelligible
+    my $language = $patron ? $patron->language : '000';
     if ($patron) {
         # Valid patron id
         $patron->block($card_retained, $blocked_card_msg);
     }
 
-    $resp = build_patron_status($patron, $patron->language, $fields);
+    $resp = build_patron_status($patron, $language, $fields);
 
     $self->write_msg($resp);
     return(BLOCK_PATRON);
