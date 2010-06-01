@@ -626,16 +626,13 @@ sub handle_checkout {
 sub handle_checkin {
     my ($self, $server) = @_;
     my $account = $server->{account};
-    my $ils = $server->{ils};
-    my ($no_block, $trans_date, $return_date);
-    my $fields;
+    my $ils     = $server->{ils};
     my ($current_loc, $inst_id, $item_id, $terminal_pwd, $item_props, $cancel);
+    my ($patron, $item, $status);
     my $resp = CHECKIN_RESP;
-    my ($patron, $item);
-    my $status;
 
-    ($no_block, $trans_date, $return_date) = @{$self->{fixed_fields}};
-    $fields = $self->{fields};
+    my ($no_block, $trans_date, $return_date) = @{$self->{fixed_fields}};
+    my $fields = $self->{fields};
 
     $current_loc = $fields->{(FID_CURRENT_LOCN)};
     $inst_id     = $fields->{(FID_INST_ID)     };
@@ -646,14 +643,11 @@ sub handle_checkin {
     $ils->check_inst_id($inst_id, "handle_checkin");
 
     if ($no_block eq 'Y') {
-	# Off-line transactions, ick.
-	syslog("LOG_WARNING", "received no-block checkin from terminal '%s'",
-	       $account->{id});
-	$status = $ils->checkin_no_block($item_id, $trans_date,
-					 $return_date, $item_props, $cancel);
+        # Off-line transactions, ick.
+        syslog("LOG_WARNING", "received no-block checkin from terminal '%s'", $account->{id});
+        $status = $ils->checkin_no_block($item_id, $trans_date, $return_date, $item_props, $cancel);
     } else {
-	$status = $ils->checkin($item_id, $trans_date, $return_date,
-				$current_loc, $item_props, $cancel);
+        $status = $ils->checkin($item_id, $trans_date, $return_date, $current_loc, $item_props, $cancel);
     }
 
     $patron = $status->patron;
@@ -662,11 +656,11 @@ sub handle_checkin {
     $resp .= $status->ok ? '1' : '0';
     $resp .= $status->resensitize ? 'Y' : 'N';
     if ($item && $ils->supports('magnetic media')) {
-	$resp .= sipbool($item->magnetic);
+        $resp .= sipbool($item->magnetic);
     } else {
-	# The item barcode was invalid or the system doesn't support
-	# the 'magnetic media' indicator
-	$resp .= 'U';
+        # The item barcode was invalid or the system doesn't support
+        # the 'magnetic media' indicator
+        $resp .= 'U';
     }
     $resp .= $status->alert ? 'Y' : 'N';
     $resp .= Sip::timestamp;
@@ -674,8 +668,8 @@ sub handle_checkin {
     $resp .= add_field(FID_ITEM_ID, $item_id);
 
     if ($item) {
-	$resp .= add_field(FID_PERM_LOCN, $item->permanent_location);
-	$resp .= maybe_add(FID_TITLE_ID, $item->title_id);
+        $resp .= add_field(FID_PERM_LOCN, $item->permanent_location);
+        $resp .= maybe_add(FID_TITLE_ID, $item->title_id);
     }
 
     if ($protocol_version >= 2) {
@@ -706,7 +700,7 @@ sub handle_checkin {
 sub handle_block_patron {
     my ($self, $server) = @_;
     my $account = $server->{account};
-    my $ils = $server->{ils};
+    my $ils     = $server->{ils};
     my ($card_retained, $trans_date);
     my ($inst_id, $blocked_card_msg, $patron_id, $terminal_pwd);
     my $fields;
@@ -738,8 +732,8 @@ sub handle_block_patron {
     # terminal default to something that, one hopes, will be
     # intelligible
     if ($patron) {
-	# Valid patron id
-	$patron->block($card_retained, $blocked_card_msg);
+        # Valid patron id
+        $patron->block($card_retained, $blocked_card_msg);
     }
 
     $resp = build_patron_status($patron, $patron->language, $fields);
@@ -1578,30 +1572,28 @@ sub send_acs_status {
 }
 
 #
-# build_patron_status: create the 14-char patron status
+# patron_status_string: create the 14-char patron status
 # string for the Patron Status message
 #
 sub patron_status_string {
     my $patron = shift;
-    my $patron_status;
-
-    syslog("LOG_DEBUG", "patron_status_string: %s charge_ok: %s", $patron->id,
-	   $patron->charge_ok);
-    $patron_status = sprintf('%s%s%s%s%s%s%s%s%s%s%s%s%s%s',
-			     denied($patron->charge_ok),
-			     denied($patron->renew_ok),
-			     denied($patron->recall_ok),
-			     denied($patron->hold_ok),
-			     boolspace($patron->card_lost),
-			     boolspace($patron->too_many_charged),
-			     boolspace($patron->too_many_overdue),
-			     boolspace($patron->too_many_renewal),
-			     boolspace($patron->too_many_claim_return),
-			     boolspace($patron->too_many_lost),
-			     boolspace($patron->excessive_fines),
-			     boolspace($patron->excessive_fees),
-			     boolspace($patron->recall_overdue),
-			     boolspace($patron->too_many_billed));
+    syslog("LOG_DEBUG", "patron_status_string for %s charge_ok: %s", $patron->id, $patron->charge_ok);
+    my $patron_status = sprintf('%s%s%s%s%s%s%s%s%s%s%s%s%s%s',
+        denied($patron->charge_ok),
+        denied($patron->renew_ok),
+        denied($patron->recall_ok),
+        denied($patron->hold_ok),
+        boolspace($patron->card_lost),
+        boolspace($patron->too_many_charged),
+        boolspace($patron->too_many_overdue),
+        boolspace($patron->too_many_renewal),
+        boolspace($patron->too_many_claim_return),
+        boolspace($patron->too_many_lost),
+        boolspace($patron->excessive_fines),
+        boolspace($patron->excessive_fees),
+        boolspace($patron->recall_overdue),
+        boolspace($patron->too_many_billed)
+    );
     return $patron_status;
 }
 
