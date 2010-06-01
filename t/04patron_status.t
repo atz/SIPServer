@@ -26,18 +26,18 @@ use Clone qw(clone);
 
 use Sip::Constants qw(:all);
 
-use SIPtest qw($datepat $textpat);
+use SIPtest qw($datepat $textpat $instid $user_barcode $password);
 
 my $patron_status_test_template = {
     id => 'Patron Status: valid patron, no patron password',
-    msg => '2300120060101    084237AOUWOLS|AAdjfiander|ACterminal password|',
+    msg => "2300120060101    084237AO$instid|AA$user_barcode|AC$password|",
     pat => qr/^24 [ Y]{13}001$datepat/,
     fields => [
 	       $SIPtest::field_specs{(FID_INST_ID)},
 	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
 	       $SIPtest::field_specs{(FID_PRINT_LINE)},
 	       { field    => FID_PATRON_ID,
-		 pat      => qr/^djfiander$/,
+		 pat      => qr/^$user_barcode$/,
 		 required => 1, },
 	       { field    => FID_PERSONAL_NAME,
 		 pat      => qr/^David J\. Fiander$/,
@@ -61,8 +61,8 @@ my @tests = (
 # Invalid patron
 my $test = clone($patron_status_test_template);
 
-$test->{id} = 'Patron Status invalid id';
-$test->{msg} =~ s/AAdjfiander\|/AAberick|/;
+$test->{id} = 'Patron Status: invalid id';
+$test->{msg} =~ s/AA$user_barcode\|/AAbad_userid|/ or warn "Substitution failed on test clone";
 
 # The test assumes that the language sent by the terminal is
 # just echoed back for invalid patrons.
@@ -74,7 +74,7 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^berick$/,
+		     pat      => qr/^bad_userid$/,
 		     required => 1, },
 		   { field    => FID_PERSONAL_NAME,
 		     pat      => qr/^$/,
@@ -97,7 +97,7 @@ $test->{fields} = [
 		 $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		 $SIPtest::field_specs{(FID_PRINT_LINE)},
 		 { field    => FID_PATRON_ID,
-		   pat      => qr/^djfiander$/,
+		   pat      => qr/^$user_barcode$/,
 		   required => 1, },
 		 { field    => FID_PERSONAL_NAME,
 		   pat      => qr/^David J\. Fiander$/,
