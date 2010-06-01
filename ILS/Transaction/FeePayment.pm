@@ -19,13 +19,16 @@
 
 package ILS::Transaction::FeePaid;
 
-use Exporter;
 use warnings;
 use strict;
 
 use ILS;
 use ILS::Transaction;
+use base qw/ILS::Transaction/;
 
-our @ISA = qw(Exporter ILS::Transaction);
+sub new {
+    warn "Not implemented";
+    return;
+}
 
 1;
