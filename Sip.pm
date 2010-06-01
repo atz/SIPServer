@@ -64,7 +64,6 @@ our $last_response = '';
 
 sub timestamp {
     my $time = $_[0] || time();
-
     return strftime(SIP_DATETIME, localtime($time));
 }
 
@@ -99,7 +98,6 @@ sub add_field {
 #
 sub maybe_add {
     my ($fid, $value) = @_;
-
     return (defined($value) && $value) ? add_field($fid, $value) : '';
 }
 
@@ -136,13 +134,11 @@ sub add_count {
 #
 sub denied {
     my $bool = shift;
-
     return boolspace(!$bool);
 }
 
 sub sipbool {
     my $bool = shift;
-
     return $bool ? 'Y' : 'N';
 }
 
@@ -151,7 +147,6 @@ sub sipbool {
 #
 sub boolspace {
     my $bool = shift;
-
     return $bool ? 'Y' : ' ';
 }
 
