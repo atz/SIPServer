@@ -221,12 +221,9 @@ sub end_patron_session {
 sub pay_fee {
     my ($self, $patron_id, $patron_pwd, $fee_amt, $fee_type,
 	$pay_type, $fee_id, $trans_id, $currency) = @_;
-    my $trans;
-    my $patron;
 
-    $trans = new ILS::Transaction::FeePayment;
-
-    $patron = new ILS::Patron $patron_id;
+    my $trans  = ILS::Transaction::FeePayment->new();
+    my $patron = ILS::Patron->new($patron_id);
 
     $trans->transaction_id($trans_id);
     $trans->patron($patron);
@@ -238,41 +235,32 @@ sub pay_fee {
 sub add_hold {
     my ($self, $patron_id, $patron_pwd, $item_id, $title_id,
 	$expiry_date, $pickup_location, $hold_type, $fee_ack) = @_;
-    my ($patron, $item);
     my $hold;
-    my $trans;
 
+    my $trans  = new ILS::Transaction::Hold;
+    my $patron = new ILS::Patron $patron_id;
 
-    $trans = new ILS::Transaction::Hold;
-
-    # BEGIN TRANSACTION
-    $patron = new ILS::Patron $patron_id;
     if (!$patron
-	|| (defined($patron_pwd) && !$patron->check_password($patron_pwd))) {
-	$trans->screen_msg("Invalid Patron.");
-
-	return $trans;
+    || (defined($patron_pwd) && !$patron->check_password($patron_pwd))) {
+        $trans->screen_msg("Invalid Patron.");
+        return $trans;
     }
 
-    $item = new ILS::Item ($item_id || $title_id);
+    my $item = new ILS::Item ($item_id || $title_id);
     if (!$item) {
-	$trans->screen_msg("No such item.");
-
-	# END TRANSACTION (conditionally)
-	return $trans;
+        $trans->screen_msg("No such item.");
+        return $trans;
     } elsif ($item->fee && ($fee_ack ne 'Y')) {
-	$trans->screen_msg = "Fee required to place hold.";
-
-	# END TRANSACTION (conditionally)
-	return $trans;
+        $trans->screen_msg = "Fee required to place hold.";
+        return $trans;
     }
 
     $hold = {
-	item_id         => $item->id,
-	patron_id       => $patron->id,
-	expiration_date => $expiry_date,
-	pickup_location => $pickup_location,
-	hold_type       => $hold_type,
+        item_id         => $item->id,
+        patron_id       => $patron->id,
+        expiration_date => $expiry_date,
+        pickup_location => $pickup_location,
+        hold_type       => $hold_type,
     };
 
     $trans->ok(1);
