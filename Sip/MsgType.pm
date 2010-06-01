@@ -443,6 +443,7 @@ sub handle {
 # 
 sub build_patron_status {
     my ($patron, $lang, $fields)= @_;
+    $lang ||= '000';
     my $patron_pwd = $fields->{(FID_PATRON_PWD)};
     my $resp = (PATRON_STATUS_RESP);
 
