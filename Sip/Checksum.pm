@@ -86,7 +86,7 @@ sub verify_cksum {
     my $cksum;
     my $shortsum;
 
-    return 0 if (substr($pkt, -6, 2) ne "AZ"); # No checksum at end
+    return 0 if (not defined($pkt) or substr($pkt, -6, 2) ne "AZ"); # No checksum at end
 
     # Convert the checksum back to hex and calculate the sum of the
     # pack without the checksum.
