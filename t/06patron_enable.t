@@ -26,21 +26,21 @@ use Clone qw(clone);
 
 use Sip::Constants qw(:all);
 
-use SIPtest qw($datepat $textpat);
+use SIPtest qw($datepat $textpat $instid $user_barcode $user_fullname);
 
 my $patron_enable_test_template = {
     id => 'Patron Enable: valid patron',
-    msg => "2520060102    084238AOUWOLS|AAdjfiander|",
-    pat => qr/^26 {4}[ Y]{10}000$datepat/,
+    msg => "2520060102    084238AO$instid|AA$user_barcode|",
+    pat => qr/^26  [ Y]{12}000$datepat/,
     fields => [
 	       $SIPtest::field_specs{(FID_INST_ID)},
 	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
 	       $SIPtest::field_specs{(FID_PRINT_LINE)},
 	       { field    => FID_PATRON_ID,
-		 pat      => qr/^djfiander$/,
+		 pat      => qr/^$user_barcode$/,
 		 required => 1, },
 	       { field    => FID_PERSONAL_NAME,
-		 pat      => qr/^David J\. Fiander$/,
+		 pat      => qr/^$user_fullname$/,
 		 required => 1, },
 	       { field    => FID_VALID_PATRON,
 		 pat      => qr/^Y$/,
@@ -52,16 +52,16 @@ my $patron_enable_test_template = {
 # ensure that he was properly enabled.
 my $patron_disable_test_template = {
     id => 'Patron Enable: block patron (prep to test enabling)',
-    msg => "01N20060102    084238AOUWOLS|ALHe's a jerk|AAdjfiander|",
+    msg => "01N20060102    084238AO$instid|ALHe's a jerk|AA$user_barcode|",
     # response to block patron is a patron status message
     pat => qr/^24Y{4}[ Y]{10}000$datepat/,
     fields => [
 	       $SIPtest::field_specs{(FID_INST_ID)},
 	       { field    => FID_PATRON_ID,
-		 pat      => qr/^djfiander$/,
+		 pat      => qr/^$user_barcode$/,
 		 required => 1, },
 	       { field    => FID_PERSONAL_NAME,
-		 pat      => qr/^David J\. Fiander$/,
+		 pat      => qr/^$user_fullname$/,
 		 required => 1, },
 	       { field    => FID_VALID_PATRON,
 		 pat      => qr/^Y$/,
@@ -89,10 +89,10 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^djfiander$/,
+		     pat      => qr/^$user_barcode$/,
 		     required => 1, },
 		   { field    => FID_PERSONAL_NAME,
-		     pat      => qr/^David J\. Fiander$/,
+		     pat      => qr/^$user_fullname$/,
 		     required => 1, },
 		   { field    => FID_VALID_PATRON,
 		     pat      => qr/^Y$/,
@@ -116,10 +116,10 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^djfiander$/,
+		     pat      => qr/^$user_barcode$/,
 		     required => 1, },
 		   { field    => FID_PERSONAL_NAME,
-		     pat      => qr/^David J\. Fiander$/,
+		     pat      => qr/^$user_fullname$/,
 		     required => 1, },
 		   { field    => FID_VALID_PATRON,
 		     pat      => qr/^Y$/,
@@ -137,7 +137,7 @@ push @tests, $patron_enable_test_template;
 # Invalid patron
 $test = clone($patron_enable_test_template);
 $test->{id} =~ s/valid/invalid/;
-$test->{msg} =~ s/AAdjfiander\|/AAberick|/;
+$test->{msg} =~ s/AA$user_barcode\|/AAbad_userid|/;
 $test->{pat} =  qr/^26Y{4}[ Y]{10}000$datepat/;
 delete $test->{fields};
 $test->{fields} = [
@@ -145,7 +145,7 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^berick$/,
+		     pat      => qr/^bad_userid$/,
 		     required => 1, },
 		   { field    => FID_PERSONAL_NAME,
 		     pat      => qr/^$/,
