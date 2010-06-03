@@ -647,7 +647,7 @@ sub handle_checkin {
         syslog("LOG_WARNING", "received no-block checkin from terminal '%s'", $account->{id});
         $status = $ils->checkin_no_block($item_id, $trans_date, $return_date, $item_props, $cancel);
     } else {
-        $status = $ils->checkin($item_id, $trans_date, $return_date, $current_loc, $item_props, $cancel);
+        $status = $ils->checkin($item_id, $inst_id, $trans_date, $return_date, $current_loc, $item_props, $cancel);
     }
 
     $patron = $status->patron;
