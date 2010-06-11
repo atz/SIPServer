@@ -41,7 +41,6 @@ our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
 		    $item2_barcode $item2_title $item2_owner
 		    $item_diacritic_barcode $item_diacritic_title
 		    $item_diacritic_owner);
-#use Data::Dumper;
 
 # The number of tests is set in run_sip_tests() below, based
 # on the size of the array of tests.
@@ -57,43 +56,51 @@ use Sip::Constants qw(:all);
 # 
 # Configuration parameters to run the test suite
 #
-our $instid = 'UWOLS';
-our $currency = 'CAD';
+our $instid   = 'BR1';
+our $currency = 'USD';
 our $server   = 'localhost:6001'; # Address of the SIP server
 
 # SIP username and password to connect to the server.  See the
 # SIP config.xml for the correct values.
-our $username = 'scclient';
-our $password = 'clientpwd';
+# our $username = 'scclient';
+# our $password = 'clientpwd';
+our $username = 'sip_01';
+our $password = 'sip_01';
 
 # ILS Information
 
 # Valid user barcode and corresponding user password/pin and full name
-our $user_barcode = 'djfiander';
-our $user_pin     = '6789';
-our $user_fullname= 'David J\. Fiander';
-our $user_homeaddr= '2 Meadowvale Dr\. St Thomas, ON';
-our $user_email   = 'djfiander\@hotmail\.com';
-our $user_phone   = '\(519\) 555 1234';
-our $user_birthday= '19640925';
-our $user_ptype   = 'A';
-our $user_inet    = 'Y';
-our $user_homelib = 'Beacock';
+our $user_barcode  = '999999';  # 'djfiander';
+our $user_pin      = '6789';
+our $user_fullname = 'David J\. Fiander';
+our $user_homeaddr = '2 Meadowvale Dr\. St Thomas, ON Canada 90210';
+our $user_email    = 'djfiander\@hotmail\.com';
+our $user_phone    = '\(519\) 555 1234';
+our $user_birthday = '19640925';
+our $user_ptype    = 'A';
+our $user_inet     = 'Y';
+our $user_homelib  = 'BR1';
 
 # Valid item barcode and corresponding title
+# isbn: 9781565921870, 1565921879
+# OCoLC: 34373965
 our $item_barcode = '1565921879';
 our $item_title   = 'Perl 5 desktop reference';
-our $item_owner   = 'UWOLS';
+our $item_owner   = 'BR1';
 
 # Another valid item
+# isbn: 9780553088533
+# OCoLC: 25026617
 our $item2_barcode = '0440242746';
-our $item2_title   = 'The deep blue alibi';
-our $item2_owner   = 'UWOLS';
+our $item2_title   = 'Snow crash';
+our $item2_owner   = 'BR1';
 
 # An item with a diacritical in the title
+# isbn: 9788478886456, 9788478886456;
+# OCoLC: 48667449
 our $item_diacritic_barcode = '660';
 our $item_diacritic_title = decode_utf8('Harry Potter y el cáliz de fuego');
-our $item_diacritic_owner = 'UWOLS';
+our $item_diacritic_owner = 'BR1';
 
 # End configuration
 
@@ -105,41 +112,59 @@ our $datepat = '\d{8} {4}\d{6}';
 our $textpat = qr/^[^|]*$/;
 
 our %field_specs = (
-		    (FID_SCREEN_MSG) => { field    => FID_SCREEN_MSG,
-					  pat      => $textpat,
-					  required => 0, },
-		    (FID_PRINT_LINE) => { field    => FID_PRINT_LINE,
-					  pat      => $textpat,
-					  required => 0, },
-		    (FID_INST_ID)    => { field    => FID_INST_ID,
-					  pat      => qr/^$instid$/o,
-					  required => 1, },
-		    (FID_HOLD_ITEMS_LMT)=> { field    => FID_HOLD_ITEMS_LMT,
-					     pat      => qr/^\d{4}$/,
-					     required => 0, },
-		    (FID_OVERDUE_ITEMS_LMT)=> { field    => FID_OVERDUE_ITEMS_LMT,
-						pat      => qr/^\d{4}$/,
-						required => 0, },
-		    (FID_CHARGED_ITEMS_LMT)=> { field    => FID_CHARGED_ITEMS_LMT,
-						pat      => qr/^\d{4}$/,
-						required => 0, },
-		    (FID_VALID_PATRON) => { field    => FID_VALID_PATRON,
-					    pat      => qr/^[NY]$/,
-					    required => 0, },
-		    (FID_VALID_PATRON_PWD)=> { field    => FID_VALID_PATRON_PWD,
-					       pat      => qr/^[NY]$/,
-					       required => 0, },
-		    (FID_CURRENCY)   => { field    => FID_CURRENCY,
-					  pat      => qr/^$currency$/io,
-					  required => 0, },
-		    );
+    (FID_SCREEN_MSG) => {
+        field    => FID_SCREEN_MSG,
+        pat      => $textpat,
+        required => 0,
+    },
+    (FID_PRINT_LINE) => {
+        field    => FID_PRINT_LINE,
+        pat      => $textpat,
+        required => 0,
+    },
+    (FID_INST_ID) => {
+        field    => FID_INST_ID,
+        pat      => qr/^$instid$/o,
+        required => 1,
+    },
+    (FID_HOLD_ITEMS_LMT) => {
+        field    => FID_HOLD_ITEMS_LMT,
+        pat      => qr/^\d{4}$/,
+        required => 0,
+    },
+    (FID_OVERDUE_ITEMS_LMT) => {
+        field    => FID_OVERDUE_ITEMS_LMT,
+        pat      => qr/^\d{4}$/,
+        required => 0,
+    },
+    (FID_CHARGED_ITEMS_LMT) => {
+        field    => FID_CHARGED_ITEMS_LMT,
+        pat      => qr/^\d{4}$/,
+        required => 0,
+    },
+    (FID_VALID_PATRON) => {
+        field    => FID_VALID_PATRON,
+        pat      => qr/^[NY]$/,
+        required => 0,
+    },
+    (FID_VALID_PATRON_PWD) => {
+        field    => FID_VALID_PATRON_PWD,
+        pat      => qr/^[NY]$/,
+        required => 0,
+    },
+    (FID_CURRENCY) => {
+        field    => FID_CURRENCY,
+        pat      => qr/^$currency$/io,
+        required => 0,
+    },
+);
 
 # Login and SC Status are always the first two messages that
 # the terminal sends to the server, so just create the test
 # cases here and reference them in the individual test files.
 
 our $login_test = { id => 'login',
-		    msg => "9300CN$username|CO$password|CPThe floor|",
+		    msg => "9300CN$username|CO$password|CP$instid|",
 		    pat => qr/^941/,
 		    fields => [], };
 
@@ -163,6 +188,7 @@ our $sc_status_test = { id => 'SC status',
 			};
 
 our $debug = 1;
+our $error_detect = 0;
 
 sub one_msg {
     my ($sock, $test, $seqno) = @_;
@@ -182,10 +208,11 @@ sub one_msg {
     chomp($resp);
     $resp =~ tr/\cM//d;
     $resp =~ s/\015?\012$//;
+    $resp =~ s/^\s*//sg;
     chomp($resp);
 
-    if (!verify_cksum($resp)) {
-        fail("checksum $test->{id}");
+    if ($error_detect and !verify_cksum($resp)) {
+        fail("$test->{id} checksum($resp)");
         return;
     }
     if ($resp !~ $test->{pat}) {
@@ -226,7 +253,7 @@ sub one_msg {
 }
 
 sub run_sip_tests {
-    $Sip::error_detection = 1;
+    $Sip::error_detection = $error_detect;
     $/ = "\r";
     # $/ = "\015\012";    # must use correct record separator
 

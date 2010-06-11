@@ -26,18 +26,22 @@ use Clone qw(clone);
 
 use Sip::Constants qw(:all);
 
-use SIPtest qw($datepat $textpat);
+use SIPtest qw($datepat $textpat $instid $user_barcode $user_fullname $item_barcode $item_title $item_owner);
+
+warn "Holds not implemented (for Evergreen)";
+SIPtest::run_sip_tests();
+exit;
 
 my $hold_test_template = {
     id => 'Place Hold: valid item, valid patron',
-    msg => '15+20060415    110158BW20060815    110158|BSTaylor|BY2|AOUWOLS|AAdjfiander|AB1565921879|',
+    msg => "15+20060415    110158BW20060815    110158|BSTaylor|BY2|AO$instid|AA$user_barcode|AB$item_barcode|",
     pat => qr/^161N$datepat/,
     fields => [
 	       $SIPtest::field_specs{(FID_INST_ID)},
 	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
 	       $SIPtest::field_specs{(FID_PRINT_LINE)},
 	       { field    => FID_PATRON_ID,
-		 pat      => qr/^djfiander$/,
+		 pat      => qr/^$user_barcode$/,
 		 required => 1, },
 	       { field    => FID_EXPIRATION,
 		 pat      => $datepat,
@@ -49,23 +53,23 @@ my $hold_test_template = {
 		 pat      => qr/^Taylor$/,
 		 required => 1, },
 	       { field    => FID_TITLE_ID,
-		 pat      => qr/^Perl 5 desktop reference$/,
+		 pat      => qr/^$item_title$/,
 		 required => 1, },
 	       { field    => FID_ITEM_ID,
-		 pat      => qr/^1565921879$/,
+		 pat      => qr/^$item_barcode$/,
 		 required => 1, },
 	       ],};
 
 my $hold_count_test_template0 = {
     id => 'Confirm patron has 0 holds',
-    msg => '6300020060329    201700          AOUWOLS|AAdjfiander|',
+    msg => "6300020060329    201700          AO$instid|AA$user_barcode|",
     pat => qr/^64 [ Y]{13}\d{3}${datepat}0000(\d{4}){5}/,
     fields => [],
 };
 
 my $hold_count_test_template1 = {
     id => 'Confirm patron has 1 hold',
-    msg => '6300020060329    201700          AOUWOLS|AAdjfiander|',
+    msg => "6300020060329    201700          AO$instid|AA$user_barcode|",
     pat => qr/^64 [ Y]{13}\d{3}${datepat}0001(\d{4}){5}/,
     fields => [],
 };
@@ -82,7 +86,7 @@ my $test;
 # Hold Queue: second hold placed on item
 $test = clone($hold_test_template);
 $test->{id} = 'Place hold: second hold on item';
-$test->{msg} =~ s/djfiander/miker/;
+$test->{msg} =~ s/$user_barcode/miker/;
 $test->{pat} = qr/^161N$datepat/;
 foreach my $i (0 .. (scalar @{$test->{fields}})-1) {
     my $field =  $test->{fields}[$i];
@@ -107,7 +111,7 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^djfiander$/,
+		     pat      => qr/^$user_barcode$/,
 		     required => 1, },
 		   ];
 
@@ -126,7 +130,7 @@ push @tests, $test, $hold_count_test_template0;
 $test = clone($hold_test_template);
 $test->{id} = "Cancel hold: cleanup second patron's hold";
 $test->{msg} =~ s/\+/-/;
-$test->{msg} =~ s/djfiander/miker/;
+$test->{msg} =~ s/$user_barcode/miker/;
 $test->{pat} = qr/^161[NY]$datepat/;
 delete $test->{fields};
 $test->{fields} = [
@@ -151,7 +155,7 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^djfiander$/,
+		     pat      => qr/^$user_barcode$/,
 		     required => 1, },
 		   ];
 
@@ -160,7 +164,7 @@ push @tests, $test, $hold_count_test_template0;
 # Place hold: invalid patron
 $test = clone($hold_test_template);
 $test->{id} = 'Place hold: invalid patron';
-$test->{msg} =~ s/AAdjfiander\|/AAberick|/;
+$test->{msg} =~ s/AA$user_barcode\|/AAno_such_user|/;
 $test->{pat} = qr/^160N$datepat/;
 delete $test->{fields};
 $test->{fields} = [
@@ -168,7 +172,7 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^berick$/,
+		     pat      => qr/^no_such_user$/,
 		     required => 1, },
 		   ];
 
@@ -178,7 +182,7 @@ push @tests, $test;
 # Place hold: invalid item
 $test = clone($hold_test_template);
 $test->{id} = 'Place hold: invalid item';
-$test->{msg} =~ s/AB1565921879\|/ABnosuchitem|/;
+$test->{msg} =~ s/AB$item_barcode\|/ABnosuchitem|/;
 $test->{pat} = qr/^160N$datepat/;
 delete $test->{fields};
 $test->{fields} = [
@@ -186,7 +190,7 @@ $test->{fields} = [
 		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
 		   $SIPtest::field_specs{(FID_PRINT_LINE)},
 		   { field    => FID_PATRON_ID,
-		     pat      => qr/^djfiander$/,
+		     pat      => qr/^$user_barcode$/,
 		     required => 1, },
 		   { field    => FID_ITEM_ID,
 		     pat      => qr/^nosuchitem$/,
