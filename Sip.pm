@@ -94,7 +94,8 @@ sub add_field {
 #
 # maybe_add(field_id, value):
 #    If value is defined and non-empty, then return the
-#    constructed field value, otherwise return the empty string
+#    constructed field value, otherwise return the empty string.
+#    NOTE: if zero is a valid value for your field, don't use maybe_add!
 #
 sub maybe_add {
     my ($fid, $value) = @_;
