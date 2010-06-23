@@ -41,7 +41,7 @@ my $patron_info_test_template = {
     msg => "6300020060329    201700          AO$instid|AA$user_barcode|",
     pat => qr/^64 [ Y]{13}\d{3}$datepat(\d{4}){6}/,
     fields => [
-	       $SIPtest::field_specs{(FID_INST_ID)},
+	       $SIPtest::field_specs{(FID_INST_ID)   },
 	       $SIPtest::field_specs{(FID_SCREEN_MSG)},
 	       $SIPtest::field_specs{(FID_PRINT_LINE)},
 	       { field    => FID_PATRON_ID,
@@ -50,7 +50,7 @@ my $patron_info_test_template = {
 	       { field    => FID_PERSONAL_NAME,
 		 pat      => qr/^$user_fullname$/o,
 		 required => 1, },
-	       $SIPtest::field_specs{(FID_HOLD_ITEMS_LMT)},
+	       $SIPtest::field_specs{(FID_HOLD_ITEMS_LMT)   },
 	       $SIPtest::field_specs{(FID_OVERDUE_ITEMS_LMT)},
 	       $SIPtest::field_specs{(FID_CHARGED_ITEMS_LMT)},
 	       { field    => FID_VALID_PATRON,
@@ -88,10 +88,10 @@ my $patron_info_test_template = {
 	      ], };
 
 my @tests = (
-	     $SIPtest::login_test,
-	     $SIPtest::sc_status_test,
-	     clone($patron_info_test_template),
-	     );
+    $SIPtest::login_test,
+    $SIPtest::sc_status_test,
+    clone($patron_info_test_template),
+);
 
 
 # Create the test cases for the various summary detail fields
@@ -120,18 +120,18 @@ sub create_patron_summary_tests {
 				     );
 
     foreach my $i (0 .. scalar @patron_info_summary_tests-1) {
-	# The tests for each of the summary fields are exactly the
-	# same as the basic one, except for the fact that there's
-	# an extra field to test
+    # The tests for each of the summary fields are exactly the
+    # same as the basic one, except for the fact that there's
+    # an extra field to test
 
-	# Copy the hash, adjust it, add it to the end of the list
-	$test = clone($patron_info_test_template);
+    # Copy the hash, adjust it, add it to the end of the list
+        $test = clone($patron_info_test_template);
 
-	substr($test->{msg}, 23+$i, 1) = 'Y';
-	$test->{id} = "valid Patron Info details: "
-	    . $patron_info_summary_tests[$i]->{field};
-	push @{$test->{fields}}, $patron_info_summary_tests[$i];
-	push @tests, $test;
+        substr($test->{msg}, 23+$i, 1) = 'Y';
+        $test->{id} = "valid Patron Info details: "
+            . $patron_info_summary_tests[$i]->{field};
+        push @{$test->{fields}}, $patron_info_summary_tests[$i];
+        push @tests, $test;
     }
 }
 
@@ -140,23 +140,26 @@ sub create_invalid_patron_tests {
 
     $test = clone($patron_info_test_template);
     $test->{id} = "invalid Patron Info id";
-    $test->{msg} =~ s/AA$user_barcode\|/AAberick|/o;
+    $test->{msg} =~ s/AA$user_barcode\|/AAbad_barcode|/o;
     $test->{pat} = qr/^64Y[ Y]{13}\d{3}$datepat(\d{4}){6}/;
     delete $test->{fields};
     $test->{fields} = [
-		       $SIPtest::field_specs{(FID_INST_ID)},
-		       $SIPtest::field_specs{(FID_SCREEN_MSG)},
-		       $SIPtest::field_specs{(FID_PRINT_LINE)},
-		       { field    => FID_PATRON_ID,
-			 pat      => qr/^berick$/,
-			 required => 1, },
-		       { field    => FID_PERSONAL_NAME,
-			 pat      => qr/^$/,
-			 required => 1, },
-		       { field    => FID_VALID_PATRON,
-			 pat      => qr/^N$/,
-			 required => 1, },
-		       ];
+        $SIPtest::field_specs{   (FID_INST_ID)  },
+        $SIPtest::field_specs{ (FID_SCREEN_MSG) },
+        $SIPtest::field_specs{ (FID_PRINT_LINE) },
+          { field    => FID_PATRON_ID,
+            pat      => qr/^bad_barcode$/,
+            required => 1,
+          },
+          { field    => FID_PERSONAL_NAME,
+            pat      => qr/^$/,
+            required => 1,
+          },
+          { field    => FID_VALID_PATRON,
+            pat      => qr/^N$/,
+            required => 1,
+          },
+    ];
     push @tests, $test;
 
     # Valid patron, invalid patron password
@@ -166,22 +169,26 @@ sub create_invalid_patron_tests {
     $test->{pat} = qr/^64[ Y]{14}\d{3}$datepat(\d{4}){6}/;
     delete $test->{fields};
     $test->{fields} = [
-		       $SIPtest::field_specs{(FID_INST_ID)},
-		       $SIPtest::field_specs{(FID_SCREEN_MSG)},
-		       $SIPtest::field_specs{(FID_PRINT_LINE)},
-		       { field    => FID_PATRON_ID,
-			 pat      => qr/^$user_barcode$/,
-			 required => 1, },
-		       { field    => FID_PERSONAL_NAME,
-			 pat      => qr/^$user_fullname$/,
-			 required => 1, },
-		       { field    => FID_VALID_PATRON,
-			 pat      => qr/^Y$/,
-			 required => 1, },
-		       { field    => FID_VALID_PATRON_PWD,
-			 pat      => qr/^N$/,
-			 required => 1, },
-		       ];
+        $SIPtest::field_specs{   (FID_INST_ID)  },
+        $SIPtest::field_specs{ (FID_SCREEN_MSG) },
+        $SIPtest::field_specs{ (FID_PRINT_LINE) },
+          { field    => FID_PATRON_ID,
+            pat      => qr/^$user_barcode$/,
+            required => 1,
+          },
+          { field    => FID_PERSONAL_NAME,
+            pat      => qr/^$user_fullname$/,
+            required => 1,
+          },
+          { field    => FID_VALID_PATRON,
+            pat      => qr/^Y$/,
+            required => 1,
+          },
+          { field    => FID_VALID_PATRON_PWD,
+            pat      => qr/^N$/,
+            required => 1,
+          },
+    ];
     push @tests, $test;
 }
 
