@@ -77,8 +77,8 @@ our $user_homeaddr = '2 Meadowvale Dr\. St Thomas, ON Canada 90210';
 our $user_email    = 'djfiander\@hotmail\.com';
 our $user_phone    = '\(519\) 555 1234';
 our $user_birthday = '19640925';
-our $user_ptype    = 'A';
-our $user_inet     = 'Y';
+our $user_ptype    = 'Patrons';
+our $user_inet     = 'Unfiltered';
 our $user_homelib  = 'BR1';
 
 # Valid item barcode and corresponding title
