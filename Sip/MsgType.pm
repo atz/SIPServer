@@ -1076,7 +1076,6 @@ sub handle_item_information {
     my $fields = $self->{fields};
     my $resp = ITEM_INFO_RESP;
     my $item;
-    my $i;
 
     ($trans_date) = @{$self->{fixed_fields}};
 
@@ -1085,41 +1084,42 @@ sub handle_item_information {
     $item = $ils->find_item($fields->{(FID_ITEM_ID)});
 
     if (!defined($item)) {
-	# Invalid Item ID
-	# "Other" circ stat, "Other" security marker, "Unknown" fee type
-	$resp .= "010101";
-	$resp .= Sip::timestamp;
-	# Just echo back the invalid item id
-	$resp .= add_field(FID_ITEM_ID, $fields->{(FID_ITEM_ID)});
-	# title id is required, but we don't have one
-	$resp .= add_field(FID_TITLE_ID, '');
+        # Invalid Item ID
+        # "Other" circ stat, "Other" security marker, "Unknown" fee type
+        $resp .= "010101";
+        $resp .= Sip::timestamp;
+        # Just echo back the invalid item id
+        $resp .= add_field(FID_ITEM_ID, $fields->{(FID_ITEM_ID)});
+        # title id is required, but we don't have one
+        $resp .= add_field(FID_TITLE_ID, '');
     } else {
-	# Valid Item ID, send the good stuff
-    $resp .= $item->sip_circulation_status;
-    $resp .= $item->sip_security_marker;
-    $resp .= $item->sip_fee_type;
-    $resp .= Sip::timestamp;
+        # Valid Item ID, send the good stuff
+        $resp .= $item->sip_circulation_status;
+        $resp .= $item->sip_security_marker;
+        $resp .= $item->sip_fee_type;
+        $resp .= Sip::timestamp;
 
-    $resp .= add_field(FID_ITEM_ID,  $item->id);
-    $resp .= add_field(FID_TITLE_ID, $item->title_id);
+        $resp .= add_field(FID_ITEM_ID,  $item->id);
+        $resp .= add_field(FID_TITLE_ID, $item->title_id);
 
-    $resp .= maybe_add(FID_MEDIA_TYPE,   $item->sip_media_type);
-    $resp .= maybe_add(FID_PERM_LOCN,    $item->permanent_location);
-    $resp .= maybe_add(FID_CURRENT_LOCN, $item->current_location);
-    $resp .= maybe_add(FID_ITEM_PROPS,   $item->sip_item_properties);
+        $resp .= maybe_add(FID_MEDIA_TYPE,   $item->sip_media_type);
+        $resp .= maybe_add(FID_PERM_LOCN,    $item->permanent_location);
+        $resp .= maybe_add(FID_CURRENT_LOCN, $item->current_location);
+        $resp .= maybe_add(FID_ITEM_PROPS,   $item->sip_item_properties);
 
-    $i = $item->fee;
-    if ($i != 0) {
-        $resp .= add_field(FID_CURRENCY, $item->fee_currency);
-        $resp .= add_field(FID_FEE_AMT,  $i);
-    }
-    $resp .= maybe_add(FID_OWNER,            $item->owner);
-    $resp .= maybe_add(FID_HOLD_QUEUE_LEN,   scalar @{$item->hold_queue});
-    $resp .= maybe_add(FID_DUE_DATE,         $item->due_date);
-    $resp .= maybe_add(FID_RECALL_DATE,      $item->recall_date);
-    $resp .= maybe_add(FID_HOLD_PICKUP_DATE, $item->hold_pickup_date);
-    $resp .= maybe_add(FID_SCREEN_MSG,       $item->screen_msg);
-    $resp .= maybe_add(FID_PRINT_LINE,       $item->print_line);
+        if ($item->fee) {
+            $resp .= add_field(FID_CURRENCY, $item->fee_currency);
+            $resp .= add_field(FID_FEE_AMT,  $item->fee);
+        }
+        $resp .= maybe_add(FID_OWNER,            $item->owner);
+        $resp .= maybe_add(FID_HOLD_QUEUE_LEN,   scalar @{$item->hold_queue});
+        $resp .= maybe_add(FID_DUE_DATE,         $item->due_date);
+        $resp .= maybe_add(FID_RECALL_DATE,      $item->recall_date);
+        $resp .= maybe_add(FID_HOLD_PICKUP_DATE, $item->hold_pickup_date);
+        $resp .= maybe_add(FID_DESTINATION_LOCATION, $item->destination_loc);  # Extension for AMH sorting
+        $resp .= maybe_add(FID_CALL_NUMBER,      $item->call_number);          # Extension for AMH sorting
+        $resp .= maybe_add(FID_SCREEN_MSG,       $item->screen_msg);
+        $resp .= maybe_add(FID_PRINT_LINE,       $item->print_line);
     }
 
     $self->write_msg($resp);
@@ -1150,21 +1150,20 @@ sub handle_item_status_update {
     }
 
     if (!$item) {
-	# Invalid Item ID
-	$resp .= '0';
-	$resp .= Sip::timestamp;
-	$resp .= add_field(FID_ITEM_ID, $item_id);
+        # Invalid Item ID
+        $resp .= '0';
+        $resp .= Sip::timestamp;
+        $resp .= add_field(FID_ITEM_ID, $item_id);
     } else {
-	# Valid Item ID
+        # Valid Item ID
+        $status = $item->status_update($item_props);
 
-	$status = $item->status_update($item_props);
+        $resp .= $status->ok ? '1' : '0';
+        $resp .= Sip::timestamp;
 
-	$resp .= $status->ok ? '1' : '0';
-	$resp .= Sip::timestamp;
-
-	$resp .= add_field(FID_ITEM_ID,    $item->id);
-	$resp .= add_field(FID_TITLE_ID,   $item->title_id);
-	$resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
+        $resp .= add_field(FID_ITEM_ID,    $item->id);
+        $resp .= add_field(FID_TITLE_ID,   $item->title_id);
+        $resp .= maybe_add(FID_ITEM_PROPS, $item->sip_item_properties);
     }
 
     $resp .= maybe_add(FID_SCREEN_MSG, $status->screen_msg);
