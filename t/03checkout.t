@@ -32,14 +32,14 @@ use SIPtest qw($datepat $textpat $instid $currency $user_barcode
 	       $item_diacritic_owner);
 
 my $patron_enable_template = {
-    id => 'Renew All: prep: enable patron permissions',
+    id  => 'Renew All: prep: enable patron permissions',
     msg => "2520060102    084238AO$instid|AA$user_barcode|",
     pat => qr/^26 {4}[ Y]{10}000$datepat/o,
     fields => [],
 };
 
 my $patron_disable_template = {
-    id => 'Checkout: block patron (prep to test checkout denied)',
+    id  => 'Checkout: block patron (prep to test checkout denied)',
     msg => "01N20060102    084238AO$instid|ALHe's a jerk|AA$user_barcode|",
     # response to block patron is a patron status message
     pat => qr/^24Y{4}[ Y]{10}000$datepat/o,
@@ -47,14 +47,14 @@ my $patron_disable_template = {
 };
 
 my $checkin_template = {
-    id => 'Checkout: cleanup: check in item',
+    id  => 'Checkout: cleanup: check in item',
     msg => "09N20050102    08423620060113    084235APUnder the bed|AO$instid|AB$item_barcode|ACterminal password|",
     pat => qr/^101YNN$datepat/o,
     fields => [],
 };
 
 my $checkout_test_template = {
-    id => 'Checkout: valid item, valid patron',
+    id  => 'Checkout: valid item, valid patron',
     msg => "11YN20060329    203000                  AO$instid|AA$user_barcode|AB$item_barcode|AC|",
     pat => qr/^121NNY$datepat/,
     fields => [
@@ -151,54 +151,54 @@ $test->{msg} =~ s/AB$item_barcode/ABno-barcode/o;
 $test->{pat} = qr/^120NUN$datepat/;
 delete $test->{fields};
 $test->{fields} = [
-		   $SIPtest::field_specs{(FID_INST_ID)},
-		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
-		   $SIPtest::field_specs{(FID_PRINT_LINE)},
-		   { field    => FID_PATRON_ID,
-		     pat      => qr/^$user_barcode$/o,
-		     required => 1, },
-		   { field    => FID_ITEM_ID,
-		     pat      => qr/^no-barcode$/,
-		     required => 1, },
-		   { field    => FID_TITLE_ID,
-		     pat      => qr/^$/,
-		     required => 1, },
-		   { field    => FID_DUE_DATE,
-		     pat      => qr/^$/,
-		     required => 1, },
-		   { field    => FID_VALID_PATRON,
-		     pat      => qr/^Y$/,
-		     required => 1, },
-		   ];
+    $SIPtest::field_specs{(FID_INST_ID)},
+    $SIPtest::field_specs{(FID_SCREEN_MSG)},
+    $SIPtest::field_specs{(FID_PRINT_LINE)},
+    { field    => FID_PATRON_ID,
+      pat      => qr/^$user_barcode$/o,
+      required => 1, },
+    { field    => FID_ITEM_ID,
+      pat      => qr/^no-barcode$/,
+      required => 1, },
+    { field    => FID_TITLE_ID,
+      pat      => qr/^$/,
+      required => 1, },
+    { field    => FID_DUE_DATE,
+      pat      => qr/^$/,
+      required => 1, },
+    { field    => FID_VALID_PATRON,
+      pat      => qr/^Y$/,
+      required => 1, },
+];
 
 push @tests, $test;
 
 # Invalid patron, valid item
 $test = clone($checkout_test_template);
 $test->{id} = 'Checkout: invalid patron, valid item';
-$test->{msg} =~ s/AA$user_barcode/AAberick/;
+$test->{msg} =~ s/AA$user_barcode/AAbad_barcode/;
 $test->{pat} = qr/^120NUN$datepat/;
 delete $test->{fields};
 $test->{fields} = [
-		   $SIPtest::field_specs{(FID_INST_ID)},
-		   $SIPtest::field_specs{(FID_SCREEN_MSG)},
-		   $SIPtest::field_specs{(FID_PRINT_LINE)},
-		   { field    => FID_PATRON_ID,
-		     pat      => qr/^berick$/,
-		     required => 1, },
-		   { field    => FID_ITEM_ID,
-		     pat      => qr/^$item_barcode$/o,
-		     required => 1, },
-		   { field    => FID_TITLE_ID,
-		     pat      => qr/^$item_title\s*$/o,
-		     required => 1, },
-		   { field    => FID_DUE_DATE,
-		     pat      => qr/^$/,
-		     required => 1, },
-		   { field    => FID_VALID_PATRON,
-		     pat      => qr/^N$/,
-		     required => 1, },
-		   ];
+    $SIPtest::field_specs{(FID_INST_ID)},
+    $SIPtest::field_specs{(FID_SCREEN_MSG)},
+    $SIPtest::field_specs{(FID_PRINT_LINE)},
+    { field    => FID_PATRON_ID,
+      pat      => qr/^berick$/,
+      required => 1, },
+    { field    => FID_ITEM_ID,
+      pat      => qr/^$item_barcode$/o,
+      required => 1, },
+    { field    => FID_TITLE_ID,
+      pat      => qr/^$item_title\s*$/o,
+      required => 1, },
+    { field    => FID_DUE_DATE,
+      pat      => qr/^$/,
+      required => 1, },
+    { field    => FID_VALID_PATRON,
+      pat      => qr/^N$/,
+      required => 1, },
+];
 
 push @tests, $test;
 
