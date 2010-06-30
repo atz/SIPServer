@@ -162,7 +162,7 @@ sub read_SIP_packet {
     my $len1 = 999;
 
     # local $/ = "\r";      # don't need any of these here.  use whatever the prevailing $/ is.
-    # local $/ = "\012";    # Internet Record Separator (lax version)
+    # local $/ = "\015";    # proper SPEC: (octal) \015 = (hex) x0D = (dec) 13 = (ascii) carriage return
     {    # adapted from http://perldoc.perl.org/5.8.8/functions/readline.html
         for ( my $tries = 1 ; $tries <= 3 ; $tries++ ) {
             undef $!;
