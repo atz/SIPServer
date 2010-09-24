@@ -6,7 +6,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 5;
+use Test::More tests => 15;
 
 use vars qw/ $debug /;
 
@@ -24,7 +24,8 @@ my %pairs = (
     F400 => '2300119960212 100239AOid_21|104000000105|AC|AD|AY2AZ',
     CBC8 => '18030001200808050000053612CF 0|AB2030527770|AJWalter in the woods and the letter W / by Cynthia Klingel and Robert B. Noyed.|BG|BV|CK000|AQreerd|CH|AF|CSE KLINGEL | CT|AY9AZ',
     CD15 => '101YNN2008050000053612AOkcls |AB2030527770|AQreerd|AJWalter in the woods and the letter W / by Cynthia Klingel and Robert B. Noyed.|AF|CSE KLINGEL|CRreerd|AY89AZ',
-    DC06 => '101YNN200808050000053558AOkcls |AB2029693658|AQrecfc|AJClementine and Mungo / by Saray Dyer.|AF|CSE DYER|CRrecfc|AY1AZ'
+    DC06 => '101YNN200808050000053558AOkcls |AB2029693658|AQrecfc|AJClementine and Mungo / by Saray Dyer.|AF|CSE DYER|CRrecfc|AY1AZ',
+    FDFD => '941AY0AZ',     # example from CASSIE
 );
 
 foreach (sort keys %pairs) {
