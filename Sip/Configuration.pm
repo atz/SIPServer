@@ -24,8 +24,9 @@
 
 package Sip::Configuration;
 
+our $VERSION = 0.02;
+
 use strict;
-use English;
 use warnings;
 use XML::Simple qw(:strict);
 
@@ -33,19 +34,25 @@ use Sip::Configuration::Institution;
 use Sip::Configuration::Account;
 use Sip::Configuration::Service;
 
-my $parser = new XML::Simple( KeyAttr   => { login => '+id',
-					     institution => '+id',
-					     service => '+port' },
-			      GroupTags =>  { listeners => 'service',
-					      accounts => 'login',
-					      institutions => 'institution', },
-			      ForceArray=> [ 'service',
-					     'login',
-					     'institution' ],
-			      ValueAttr =>  { 'error-detect' => 'enabled',
-					     'timeout' => 'value',
-					     'min_servers' => 'value',
-					     'max_servers' => 'value'} );
+my $parser = new XML::Simple(
+    KeyAttr => {
+        login       => '+id',
+        institution => '+id',
+        service     => '+port'
+    },
+    GroupTags => {
+        listeners    => 'service',
+        accounts     => 'login',
+        institutions => 'institution',
+    },
+    ForceArray => [ 'service', 'login', 'institution' ],
+    ValueAttr  => {
+        'error-detect' => 'enabled',
+        'timeout'      => 'value',
+        'min_servers'  => 'value',
+        'max_servers'  => 'value'
+    }
+);
 
 sub new {
     my ($class, $config_file) = @_;
@@ -53,7 +60,7 @@ sub new {
     my %listeners;
 
     foreach my $acct (values %{$cfg->{accounts}}) {
-	new Sip::Configuration::Account $acct;
+        new Sip::Configuration::Account $acct;
     }
 
     # The key to the listeners hash is the 'port' component of the
@@ -63,13 +70,13 @@ sub new {
     # find_server() when building the keys to search the hash.
 
     foreach my $service (values %{$cfg->{listeners}}) {
-	new Sip::Configuration::Service $service;
-	$listeners{lc $service->{port}} = $service;
+        new Sip::Configuration::Service $service;
+        $listeners{lc $service->{port}} = $service;
     }
     $cfg->{listeners} = \%listeners;
 
     foreach my $inst (values %{$cfg->{institutions}}) {
-	new Sip::Configuration::Institution $inst;
+        new Sip::Configuration::Institution $inst;
     }
 
     return bless $cfg, $class;
@@ -77,24 +84,21 @@ sub new {
 
 sub error_detect {
     my $self = shift;
-
     return $self->{'error-detect'};
 }
 
 sub timeout {
     my $self = shift;
-
     return $self->{'timeout'}
 }
 
 sub accounts {
     my $self = shift;
-
     return values %{$self->{accounts}};
 }
 
 sub find_service {
-    my ($self, $sockaddr, $port, $proto) = @_;
+    my ( $self, $sockaddr, $port, $proto ) = @_;
     my $portstr;
 
     $proto = lc($proto);

@@ -27,6 +27,7 @@ use Exporter;
 use Data::Dumper;
 
 our @ISA = qw(Exporter);
+our $VERSION = 0.02;
 
 our @EXPORT_OK = qw(run_sip_tests no_tagged_fields
 		    $datepat $textpat

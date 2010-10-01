@@ -29,9 +29,10 @@ use strict;
 use warnings;
 use Exporter;
 
-our (@ISA, @EXPORT_OK, %EXPORT_TAGS);
+our (@ISA, @EXPORT_OK, %EXPORT_TAGS, $VERSION);
 
 BEGIN {
+    $VERSION     = 0.02;
     @ISA         = qw(Exporter);
     %EXPORT_TAGS = (
 

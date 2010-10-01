@@ -35,6 +35,7 @@ use Socket qw(:crlf);
 use Sip::Constants qw(SIP_DATETIME);
 use Sip::Checksum qw(checksum);
 
+our $VERSION = 0.02;
 our @ISA = qw(Exporter);
 
 our @EXPORT_OK = qw(y_or_n timestamp add_field maybe_add add_count

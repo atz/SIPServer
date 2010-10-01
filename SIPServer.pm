@@ -38,6 +38,7 @@ use Sip::MsgType;
 
 use constant LOG_SIP => "local6"; # Local alias for the logging facility
 
+our $VERSION = 0.02;
 our @ISA = qw(Net::Server::PreFork);
 #
 # Main
@@ -51,7 +52,7 @@ my %transports = (
 
 # Read configuration
 
-my $config = new Sip::Configuration $ARGV[0];
+my $config = Sip::Configuration->new($ARGV[0]);
 
 my @parms;
 
@@ -122,7 +123,7 @@ sub process_request {
     $self->{service} = $config->find_service( $sockaddr, $port, $proto );
 
     if (! defined($self->{service})) {
-        syslog( "LOG_ERR", "process_request: Unknown recognized server connection: %s:%s/%s",
+        syslog( "LOG_ERR", "process_request: Unrecognized server connection: %s:%s/%s",
             $sockaddr, $port, $proto );
         die "process_request: Bad server connection";
     }
