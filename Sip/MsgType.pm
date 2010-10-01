@@ -36,10 +36,11 @@ use Sip::Checksum qw(verify_cksum);
 
 use Data::Dumper;
 
-our (@ISA, @EXPORT_OK);
+our (@ISA, @EXPORT_OK, $VERSION);
 
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(handle);
+$VERSION = 0.02;
 
 # Predeclare handler subroutines
 use subs qw(handle_patron_status handle_checkout handle_checkin

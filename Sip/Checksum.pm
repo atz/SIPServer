@@ -24,8 +24,9 @@ use strict;
 use warnings;
 use integer;    # important
 
-our @ISA = qw(Exporter);
+our $VERSION   = 0.02;
 our @EXPORT_OK = qw(checksum verify_cksum);
+our @ISA   = qw(Exporter);
 our $debug = 0;
 
 sub debug_print {
