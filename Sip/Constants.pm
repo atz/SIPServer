@@ -107,6 +107,7 @@ BEGIN {
         FID_ALERT_TYPE
         FID_HOLD_PATRON_ID
         FID_HOLD_PATRON_NAME
+        FID_PATRON_INTERNAL_ID
         )],
     );
 
@@ -259,6 +260,9 @@ use constant {
     FID_ALERT_TYPE             => 'CV',
     FID_HOLD_PATRON_ID         => 'CY',
     FID_HOLD_PATRON_NAME       => 'DA',
+
+    # SIP Extension by Evergreen for AMH: 10/01/2001
+    FID_PATRON_INTERNAL_ID     => 'XI',
 };
 
 #
