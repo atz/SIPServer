@@ -923,83 +923,77 @@ sub handle_patron_info {
 
     $resp = (PATRON_INFO_RESP);
     if ($patron) {
-	$resp .= patron_status_string($patron);
-	$resp .= $lang . Sip::timestamp();
+        $resp .= patron_status_string($patron);
+        $resp .= $lang . Sip::timestamp();
 
-	$resp .= add_count('patron_info/hold_items',
-			   scalar @{$patron->hold_items});
-	$resp .= add_count('patron_info/overdue_items',
-			   scalar @{$patron->overdue_items});
-	$resp .= add_count('patron_info/charged_items',
-			   scalar @{$patron->charged_items});
-	$resp .= add_count('patron_info/fine_items',
-			   scalar @{$patron->fine_items});
-	$resp .= add_count('patron_info/recall_items',
-			   scalar @{$patron->recall_items});
-	$resp .= add_count('patron_info/unavail_holds',
-			   scalar @{$patron->unavail_holds});
+        $resp .= add_count('patron_info/hold_items',    scalar @{$patron->hold_items   });
+        $resp .= add_count('patron_info/overdue_items', scalar @{$patron->overdue_items});
+        $resp .= add_count('patron_info/charged_items', scalar @{$patron->charged_items});
+        $resp .= add_count('patron_info/fine_items',    scalar @{$patron->fine_items   });
+        $resp .= add_count('patron_info/recall_items',  scalar @{$patron->recall_items });
+        $resp .= add_count('patron_info/unavail_holds', scalar @{$patron->unavail_holds});
 
-	# while the patron ID we got from the SC is valid, let's
-	# use the one returned from the ILS, just in case...
-	$resp .= add_field(FID_PATRON_ID, $patron->id);
+        # while the patron ID we got from the SC is valid, let's
+        # use the one returned from the ILS, just in case...
+        $resp .= add_field(FID_PATRON_ID, $patron->id);
 
-	$resp .= add_field(FID_PERSONAL_NAME, $patron->name);
+        $resp .= add_field(FID_PERSONAL_NAME, $patron->name);
 
-	# TODO: add code for the fields
-	# hold items limit
-	# overdue items limit
-	# charged items limit
-	# fee limit
+        # TODO: add code for the fields
+        #    hold items limit
+        # overdue items limit
+        # charged items limit
+        #           fee limit
 
-	$resp .= maybe_add(FID_CURRENCY,   $patron->currency);
-	$resp .= maybe_add(FID_FEE_AMT,    $patron->fee_amount);
-	$resp .= maybe_add(FID_HOME_ADDR,  $patron->address);
-	$resp .= maybe_add(FID_EMAIL,      $patron->email_addr);
-	$resp .= maybe_add(FID_HOME_PHONE, $patron->home_phone);
+        $resp .= maybe_add(FID_CURRENCY,   $patron->currency  );
+        $resp .= maybe_add(FID_FEE_AMT,    $patron->fee_amount);
+        $resp .= maybe_add(FID_HOME_ADDR,  $patron->address   );
+        $resp .= maybe_add(FID_EMAIL,      $patron->email_addr);
+        $resp .= maybe_add(FID_HOME_PHONE, $patron->home_phone);
 
-	# Extension requested by PINES. Report the home system for
-	# the patron in the 'AQ' field. This is normally the "permanent
-	# location" field for an ITEM, but it's not used in PATRON info.
-	# Apparently TLC systems do this.
-	$resp .= maybe_add(FID_HOME_LIBRARY, $patron->home_library);
+        # Extension requested by PINES. Report the home system for
+        # the patron in the 'AQ' field. This is normally the "permanent
+        # location" field for an ITEM, but it's not used in PATRON info.
+        # Apparently TLC systems do this.
+        $resp .= maybe_add(FID_HOME_LIBRARY, $patron->home_library);
 
-	$resp .= summary_info($ils, $patron, $summary, $start, $end);
+        $resp .= summary_info($ils, $patron, $summary, $start, $end);
 
-	$resp .= add_field(FID_VALID_PATRON, 'Y');
-	if (defined($patron_pwd)) {
-	    # If the patron password was provided, report on if
-	    # it was right.
-	    $resp .= add_field(FID_VALID_PATRON_PWD,
+        $resp .= add_field(FID_VALID_PATRON, 'Y');
+        if (defined($patron_pwd)) {
+	        # If the patron password was provided, report on if it was right.
+            $resp .= add_field(FID_VALID_PATRON_PWD,
 			       sipbool($patron->check_password($patron_pwd)));
-	}
+        }
 
-	# SIP 2.0 extensions used by Envisionware
-	# Other types of terminals will ignore the fields, if
-	# they don't recognize the codes
-	$resp .= maybe_add(FID_PATRON_BIRTHDATE, $patron->sip_birthdate);
-	$resp .= maybe_add(FID_PATRON_CLASS, $patron->ptype);
+        # SIP 2.0 extensions used by Envisionware
+        # Other types of terminals will ignore the fields, if
+        # they don't recognize the codes
+        $resp .= maybe_add(FID_PATRON_BIRTHDATE, $patron->sip_birthdate);
+        $resp .= maybe_add(FID_PATRON_CLASS, $patron->ptype);
 
-	# Custom protocol extension to report patron internet privileges
-	$resp .= maybe_add(FID_INET_PROFILE, $patron->inet_privileges);
-    $resp .= maybe_add(FID_PATRON_INTERNAL_ID, $patron->internal_id);   # another extension
+        # Custom protocol extension to report patron internet privileges
+        $resp .= maybe_add(FID_INET_PROFILE, $patron->inet_privileges);
 
-	$resp .= maybe_add(FID_SCREEN_MSG, $patron->screen_msg);
-	$resp .= maybe_add(FID_PRINT_LINE, $patron->print_line);
+        $resp .= maybe_add(FID_PATRON_INTERNAL_ID, $patron->internal_id);   # another extension
+
+        $resp .= maybe_add(FID_SCREEN_MSG, $patron->screen_msg);
+        $resp .= maybe_add(FID_PRINT_LINE, $patron->print_line);
     } else {
-	# Invalid patron ID
-	# He has no privileges, no items associated with him,
-	# no personal name, and is invalid (if we're using 2.00)
-	$resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
-	$resp .= '0000' x 6;
-	$resp .= add_field(FID_PERSONAL_NAME, '');
+        # Invalid patron ID
+        # He has no privileges, no items associated with him,
+        # no personal name, and is invalid (if we're using 2.00)
+        $resp .= 'YYYY' . (' ' x 10) . $lang . Sip::timestamp();
+        $resp .= '0000' x 6;
+        $resp .= add_field(FID_PERSONAL_NAME, '');
 
-	# the patron ID is invalid, but it's a required field, so
-	# just echo it back
-	$resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
+        # the patron ID is invalid, but it's a required field, so
+        # just echo it back
+        $resp .= add_field(FID_PATRON_ID, $fields->{(FID_PATRON_ID)});
 
-	if ($protocol_version >= 2) {
-	    $resp .= add_field(FID_VALID_PATRON, 'N');
-	}
+        if ($protocol_version >= 2) {
+            $resp .= add_field(FID_VALID_PATRON, 'N');
+        }
     }
 
     $resp .= add_field(FID_INST_ID, $server->{ils}->institution);
