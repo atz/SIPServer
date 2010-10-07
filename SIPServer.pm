@@ -148,15 +148,15 @@ sub raw_transport {
     my $input;
     my $service = $self->{service};
     my $strikes = 3;
-    my $expect;
     my $inst;
+    my $timeout = $self->{service}->{timeout} || $self->{config}->{timeout} || 0;
 
     eval {
         local $SIG{ALRM} = sub { die "raw_transport Timed Out!\n"; };
-        syslog("LOG_DEBUG", "raw_transport: timeout is %d", $service->{timeout});
+        syslog("LOG_DEBUG", "raw_transport: timeout is $timeout");
 
     while ($strikes--) {
-        alarm $service->{timeout};
+        alarm $timeout;
         $input = Sip::read_SIP_packet(*STDIN);
         alarm 0;
 
@@ -164,6 +164,9 @@ sub raw_transport {
             # EOF on the socket
             syslog("LOG_INFO", "raw_transport: shutting down: EOF during login");
             return;
+        } elsif ($input !~ /\S/) {
+            syslog("LOG_INFO", "raw_transport: received whitespace line (length %s) during login, skipping", length($input));
+            next;
         }
         $input =~ s/[\r\n]+$//sm;	# Strip off trailing line terminator
         last if Sip::MsgType::handle($input, $self, LOGIN);
