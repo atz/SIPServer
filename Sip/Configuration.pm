@@ -100,15 +100,19 @@ sub accounts {
 sub find_service {
     my ( $self, $sockaddr, $port, $proto ) = @_;
     my $portstr;
+    $self->{listeners} or die "ERROR: " . __PACKAGE__ . " object has no {listeners} for find_service() to find!";
 
-    $proto = lc($proto);
-    foreach my $addr ('', '*:', "$sockaddr:") {
-	$portstr = sprintf("%s%s/%s", $addr, $port, lc $proto);
-	Sys::Syslog::syslog("LOG_DEBUG", "Configuration::find_service: Trying $portstr");
-	last if (exists(($self->{listeners})->{$portstr}));
+    my @misses;
+    foreach my $addr ( '', '*:', "$sockaddr:" ) {
+        $portstr = sprintf( "%s%s/%s", $addr, $port, lc $proto );
+        if (exists($self->{listeners}->{$portstr})) {
+            Sys::Syslog::syslog("LOG_DEBUG", "find_service: Matched $portstr" );
+            return $self->{listeners}->{$portstr};
+        }
+        push @misses, $portstr;
     }
-
-    return $self->{listeners}->{$portstr};
+    Sys::Syslog::syslog("LOG_WARN", "find_service: No match in: " . join(' ',@misses));
+    return;
 }
 
 1;
