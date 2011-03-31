@@ -42,6 +42,7 @@ and to display information about the patron's borrowing activity.
 	$str = $patron->email_addr;
 	$str = $patron->home_phone;
 	$str = $patron->sip_birthdate;	
+	$str = $patron->sip_expire;
 	$str = $patron->ptype;
 	$str = $patron->language;
 	$str = $patron->password;
@@ -115,6 +116,13 @@ explication however.
 =head2 C<$str = $patron-E<gt>sip_birthdate;>
 
 Returns the patron's birthday formated according to the SIP
+specification:
+
+	YYYYMMDD    HHMMSS
+
+=head2 C<$str = $patron-E<gt>sip_expire;>
+
+Returns the patron's expiration formated according to the SIP
 specification:
 
 	YYYYMMDD    HHMMSS

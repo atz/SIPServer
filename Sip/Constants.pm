@@ -248,6 +248,7 @@ use constant {
     FID_VALID_PATRON_PWD       => 'CQ',
 
     # SIP Extensions used by Envisionware Terminals
+    FID_PATRON_EXPIRE          => 'PA',
     FID_PATRON_BIRTHDATE       => 'PB',
     FID_PATRON_CLASS           => 'PC',
 
