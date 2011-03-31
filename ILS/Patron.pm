@@ -68,6 +68,7 @@ our %patron_db = (
 		      recall_items => [],
 		      unavail_holds => [],
 		      inet => 1,
+		      expire => '20501231',
 		  },
 		  miker => {
 		      name => "Mike Rylander",
@@ -97,6 +98,7 @@ our %patron_db = (
 		      recall_items => [],
 		      unavail_holds => [],
 		      inet => 0,
+		      expire => '20501120',
 		  },
 		  );
 
@@ -153,6 +155,12 @@ sub sip_birthdate {
     my $self = shift;
 
     return $self->{birthdate};
+}
+
+sub sip_expire {
+    my $self = shift;
+
+    return $self->{expire};
 }
 
 sub ptype {

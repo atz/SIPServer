@@ -969,6 +969,7 @@ sub handle_patron_info {
         # SIP 2.0 extensions used by Envisionware
         # Other types of terminals will ignore the fields, if
         # they don't recognize the codes
+        $resp .= maybe_add(FID_PATRON_EXPIRE, $patron->sip_expire);
         $resp .= maybe_add(FID_PATRON_BIRTHDATE, $patron->sip_birthdate);
         $resp .= maybe_add(FID_PATRON_CLASS, $patron->ptype);
 
